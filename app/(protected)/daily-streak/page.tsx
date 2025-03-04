@@ -3,14 +3,14 @@
 import { logout } from "@/actions/logout";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
-const SettingsPage = () => {
+const DailyStreakPage = () => {
     const user = useCurrentUser();
 
     return (
     <div>
-        fSettings Page
+        DailyStreakPage
     </div>
     );
 };
 
-export default SettingsPage;
+export default DailyStreakPage;

@@ -21,7 +21,7 @@ export const { handlers: {GET, POST} , signIn, signOut,  auth } = NextAuth({
                 where: { id: user.id },
                 data: { emailVerified: new Date() }
             });
-        }
+        },
     },
     callbacks: {
         async session({token, session}) {

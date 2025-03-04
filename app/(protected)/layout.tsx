@@ -1,8 +1,11 @@
 
 import type { Metadata } from "next";
+import { cookies } from "next/headers"
+
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@/auth";
-import { SideBar } from "@/components/dashboard/sidebar";
+import { AppSidebar } from "./_components/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 export const metadata: Metadata = {
 	title: "Dashboard"
 };
@@ -14,11 +17,16 @@ export default async function RootLayout({
 }>) {
 
     const session = await auth();
+	const cookieStore = await cookies()
+  	const defaultOpen = cookieStore.get("sidebar_state")?.value === "true"
+ 
 
 	return (
         <SessionProvider session={session}>
-            <SideBar />
-			{children}
+			<SidebarProvider defaultOpen={defaultOpen}>
+				<AppSidebar />
+				{children}
+			</SidebarProvider>
         </SessionProvider>
 	
 	);
