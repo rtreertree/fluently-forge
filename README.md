@@ -39,7 +39,7 @@ function addNumbers(a, b) {
 
 ---
 
-### Git workflow guide
+## Git workflow guide
 
 1. Create new branch from the `main` branch use `git branch <branch-name>` and `git checkout <branch-name>`
 2. Make your changes and commit them regularly to keep track of progress.
