@@ -5,7 +5,7 @@ This GitHub repository contains the codebase for both the server-side and client
 
 ## Feature list
 |   Feature name  |                                                                      description |    status   |
-|:---------------:|---------------------------------------------------------------------------------:|:-----------:|
+|:---------------:|"---------------------------------------------------------------------------------:|:-----------:|
 |   welcome page  |                    the root page "/" which show a information about this project | not started |
 |  home dashboard |                                           the dashboard which contain everything | not started |
 |  login/register | login and register, including account management and integration with a database |     50%     |
