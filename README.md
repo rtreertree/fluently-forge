@@ -3,6 +3,18 @@ This GitHub repository contains the codebase for both the server-side and client
 
 ---
 
+## Feature list
+|   Feature name  |                                                                      description |    status   |
+|:---------------:|---------------------------------------------------------------------------------:|:-----------:|
+|   welcome page  |                    the root page "/" which show a information about this project | not started |
+|  home dashboard |                                           the dashboard which contain everything | not started |
+|  login/register | login and register, including account management and integration with a database |     50%     |
+| session creator |                                     "/create-session" for create session of user | not started |
+| daily streak    |                                                  count and display user activity | working on  |
+| account setting |                                       "/setting" make a account and user setting |  working on |
+
+---
+
 ## Development Guidelines
 ### 1. Stay Updated with the Remote Repository
 - Always fetch and update your local repository with the latest changes from the remote repository before starting work.  
@@ -21,17 +33,17 @@ This GitHub repository contains the codebase for both the server-side and client
 - if possible, please use the `JSDoc` for code readability.
 - However, simple code commentation is acceptable.
 - Example:
-```js
-/**
- * Adds two numbers and returns the result.
- * @param {number} a - The first number.
- * @param {number} b - The second number.
- * @returns {number} Sum of a and b.
- */
-function addNumbers(a, b) {
-    return a + b;
-}
-```
+    ```ts
+    /**
+     * Adds two numbers and returns the result.
+     * @param {number} a - The first number.
+     * @param {number} b - The second number.
+     * @returns {number} Sum of a and b.
+     */
+    function addNumbers(a: number, b: number): number {
+        return a + b;
+    }
+    ```
 ### 4. Ensure Component Reusability
 - Design and develop components to be modular, reusable, and maintainable.
 - Follow the DRY (Don't Repeat Yourself) principle.
