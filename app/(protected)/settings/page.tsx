@@ -1,15 +1,13 @@
 "use client";
 
-import { logout } from "@/actions/logout";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import SettingsForm from "../_components/settings/settings-tabs";
 
 const SettingsPage = () => {
     const user = useCurrentUser();
 
     return (
-    <div>
-        fSettings Page
-    </div>
+        <SettingsForm />
     );
 };
 

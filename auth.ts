@@ -4,7 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import { db } from "@/lib/db"
 
 import { getUserById } from "@/data/user"
-import { UserRole } from "@prisma/client"
+import { EnglishLevel, UserRole } from "@prisma/client"
 
 
 
@@ -32,6 +32,11 @@ export const { handlers: {GET, POST} , signIn, signOut,  auth } = NextAuth({
             if (session.user && token.role) {
                 session.user.role = token.role as UserRole;
             }
+
+            if (session.user && token.englishLevel) {
+                session.user.englishLevel = token.englishLevel as EnglishLevel;
+            }
+
             return session;
         },
         async jwt({ token }) {
@@ -43,6 +48,7 @@ export const { handlers: {GET, POST} , signIn, signOut,  auth } = NextAuth({
                 return token;
 
             token.role = existingUser.role;
+            token.englishLevel = existingUser.englishLevel;
             return token;
         }
     },

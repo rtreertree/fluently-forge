@@ -1,29 +1,41 @@
 // prisma/schema.prisma
 datasource db {
-  	provider  = "postgresql"
+  	provider    = "postgresql"
   	url  	    = env("DATABASE_URL")
-  	directUrl = env("DATABASE_URL_UNPOOLED")
+  	directUrl   = env("DATABASE_URL_UNPOOLED")
 }
 
 generator client {
 	provider = "prisma-client-js"
 }
 
-
 enum UserRole {
 	ADMIN
 	USER
 }
 
+enum EnglishLevel {
+  	A1
+  	A2
+  	B1
+ 	B2
+  	C1
+  	C2
+}
+
 model User {
-	id            String    @id @default(cuid())
-	name          String?
-	email         String?   @unique
-	emailVerified DateTime? @map("email_verified")
-	image         String?
-	password   	  String?
-	role 		  UserRole  @default(USER)
-	accounts      Account[]	
+	id             String    @id @default(cuid())
+	name           String?
+	email          String?   @unique
+	emailVerified  DateTime? @map("email_verified")
+	image          String?
+	password   	   String?
+	role 		   UserRole  @default(USER)
+	accounts       Account[]
+
+	englishLevel   EnglishLevel @default(B1)
+
+
 	@@map("users")
 }
 

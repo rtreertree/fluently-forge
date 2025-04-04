@@ -25,7 +25,9 @@ export default async function RootLayout({
         <SessionProvider session={session}>
 			<SidebarProvider defaultOpen={defaultOpen}>
 				<AppSidebar />
-				{children}
+				<div className="flex-1 flex flex-col">
+					{children}
+				</div>
 			</SidebarProvider>
         </SessionProvider>
 	

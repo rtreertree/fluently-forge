@@ -12,6 +12,15 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 
 export const SidebarDashboardFooter = () => {
     const user = useCurrentUser();
+    
+	const handleLogout = async () => {
+		await logout();
+	}
+
+	const handleAccount = () => {
+		window.location.href = "/settings";
+	}
+
     return (
         <SidebarFooter>
         <SidebarMenu className="mb-5">
@@ -27,13 +36,10 @@ export const SidebarDashboardFooter = () => {
                 	side="top"
                 	className="w-[--radix-popper-anchor-width]"
               	>
-					<DropdownMenuItem>
-						<span>Account</span>
+					<DropdownMenuItem onClick={handleAccount}>
+						<span>Setting</span>
 					</DropdownMenuItem>
-					<DropdownMenuItem>
-						<span>Billing</span>
-					</DropdownMenuItem>
-					<DropdownMenuItem onClick={() => logout()}>
+					<DropdownMenuItem onClick={handleLogout}>
 						<span>Sign out</span>
 					</DropdownMenuItem>
               	</DropdownMenuContent>
