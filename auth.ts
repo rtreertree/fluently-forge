@@ -37,8 +37,6 @@ export const { handlers: {GET, POST} , signIn, signOut,  auth } = NextAuth({
             if (session.user && token.englishLevel) {
                 session.user.englishLevel = token.englishLevel as EnglishLevel;
             }
-            console.log("Session (session)", session);
-            console.log("Token (session)", token);
             return session;
         },
         async jwt({ token, trigger, session }) {
@@ -49,11 +47,9 @@ export const { handlers: {GET, POST} , signIn, signOut,  auth } = NextAuth({
             if (trigger === "update" && session) {
                 token.name = session.user?.name;
                 token.englishLevel = session.user?.englishLevel;
-                console.log("token (JWT)", token);
                 return token;
             }
 
-            
             const existingUser = await getUserById(token.sub);
             if (!existingUser)
                 return token;

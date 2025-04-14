@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { SettingsSchema } from "@/schemas";
 import { getUserById } from '@/data/user';
 import { db } from '@/lib/db';
+import { logDB } from '@/data/logs';
+import { LogType } from '@prisma/client';
 
 export const changeSettings = async (userId: string, values: z.infer<typeof SettingsSchema>) => {
     console.log("Change settings", { userId, values });
@@ -23,7 +25,7 @@ export const changeSettings = async (userId: string, values: z.infer<typeof Sett
                 englishLevel: english_level,
             },
         });
-
+        logDB(LogType.USER_UPDATED, `changeSettings("${userId}", ${JSON.stringify(validatedField.data)})`);
         return { success: `Settings changed` };
 
     } catch (error) {

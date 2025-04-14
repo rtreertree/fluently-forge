@@ -1,4 +1,7 @@
 import { db } from "@/lib/db";
+import { LogType } from "@prisma/client";
+import { logDB } from "@/data/logs";
+
 
 export const getUserByEmail = async (email: string) => {
     try {
@@ -7,9 +10,9 @@ export const getUserByEmail = async (email: string) => {
                 email
             }
         });
+        logDB(LogType.GET_PROFILE, `getUserByEmail("${email}")`);
         return user;
     }
-
     catch (error) {
         return null;
     }
@@ -22,9 +25,9 @@ export const getUserById = async (id: string) => {
                 id
             }
         });
+        logDB(LogType.GET_PROFILE, `getUserById("${id}")`);
         return user;
     }
-
     catch (error) {
         return null;
     }
