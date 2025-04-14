@@ -75,7 +75,7 @@ export const SettingsFormField = ({ form, param }: SettingsFormFieldProps) => {
                             />
                         ) : null}
                         {param.type === FieldType.SELECT && param.items ? (
-                            <Select disabled={field.disabled} onValueChange={field.onChange} defaultValue={param.value as string}>
+                            <Select disabled={param.disabled || field.disabled} onValueChange={field.onChange} defaultValue={param.value as string}>
                                 <SelectTrigger className="w-[120px]">
                                     <SelectValue placeholder={param.placeholder} />
                                 </SelectTrigger>
@@ -92,7 +92,7 @@ export const SettingsFormField = ({ form, param }: SettingsFormFieldProps) => {
                         ) : null}
                         {param.type === FieldType.TEXT ? (
                             <div className="grid w-full max-w-sm items-center gap-1.5">
-                                <Input type="text" id={param.name} placeholder={param.placeholder} defaultValue={param.value as string}/>
+                                <Input type="text" id={param.name} onChange={field.onChange} placeholder={param.placeholder} defaultValue={param.value as string}/>
                             </div>
                         ) : null}
                     </FormItem>

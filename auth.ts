@@ -22,27 +22,34 @@ export const { handlers: {GET, POST} , signIn, signOut,  auth } = NextAuth({
                 data: { emailVerified: new Date() }
             });
         },
-    },
+    }, 
     callbacks: {
         async session({token, session}) {
+            
             if (token.sub && session.user) {
                 session.user.id = token.sub;
             }
-
+            
             if (session.user && token.role) {
                 session.user.role = token.role as UserRole;
             }
-
+            
             if (session.user && token.englishLevel) {
                 session.user.englishLevel = token.englishLevel as EnglishLevel;
             }
-
             return session;
         },
-        async jwt({ token }) {
+        async jwt({ token, trigger, session }) {
             if (!token.sub) {
                 return token;
             }
+
+            if (trigger === "update" && session) {
+                token.name = session.user?.name;
+                token.englishLevel = session.user?.englishLevel;
+                return token;
+            }
+
             const existingUser = await getUserById(token.sub);
             if (!existingUser)
                 return token;

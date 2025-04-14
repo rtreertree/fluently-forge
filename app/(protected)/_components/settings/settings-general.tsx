@@ -19,11 +19,14 @@ import { useSearchParams } from "next/navigation"
 import { FormSuccess } from "@/components/form-success"
 import { FormError } from "@/components/form-error"
 import { changeSettings } from "@/actions/change-settings"
+import { urlToUrlWithoutFlightMarker } from "next/dist/client/components/router-reducer/fetch-server-response"
+import { EnglishLevel } from "@prisma/client"
 
 
 export function SettingsGeneral() {
 
     const user = useCurrentUser();
+    const { data, update, status } = useSession();
     const [error, setError] = useState<string | undefined>("");
     const [success, setSuccess] = useState<string | undefined>("");
     const [isPending, startTransition] = useTransition();
@@ -33,17 +36,15 @@ export function SettingsGeneral() {
         resolver: zodResolver(SettingsSchema),
         defaultValues: {
             name: user?.name || "",
-            english_level: "B1",
+            english_level: (user?.englishLevel || "B1") as EnglishLevel,
         },
     })
-
-    console.log(user?.englishLevel);
 
     const fields: fieldDetails[] = [
         {
             name: "name",
             label: "Name",
-            description: "Enter your name.",    
+            description: "Enter your name.",
             type: FieldType.TEXT,
             value: user?.name || "",
             placeholder: "Enter your name",
@@ -60,16 +61,36 @@ export function SettingsGeneral() {
     ]
 
 
-    function onSubmit(data: z.infer<typeof SettingsSchema>) {
-        console.log("Form submitted", data)
+    function onSubmit(formdata: z.infer<typeof SettingsSchema>) {
         setError("");
         setSuccess("");
+
         startTransition(() => {
-            changeSettings(user?.id || "", data)
-                .then((data) => {
-                    setError(data.error);
-                    setSuccess(data.success);
-                })
+            if (user?.englishLevel === formdata.english_level && user?.name === formdata.name) {
+                setError("No changes made");
+                setSuccess("");
+            } else {
+                changeSettings(user?.id || "", formdata)
+                    .then((re) => {
+                        setError(re.error);
+                        if (re.success) {
+                            update(
+                                {
+                                    ...data,
+                                    user: {
+                                        // ...data.user,
+                                        name: formdata.name,
+                                        englishLevel: formdata.english_level as EnglishLevel,
+                                    }
+                                }
+                            ).then(() => {
+                                setSuccess("Settings updated successfully");
+                            }).catch((err) => {
+                                setError("Failed to update settings");
+                            });
+                        }
+                    });
+            };
         });
     }
 
@@ -84,8 +105,8 @@ export function SettingsGeneral() {
                         ))}
                     </div>
                 </div>
-                <FormSuccess message={success}/>   
-                <FormError message={error}/>
+                <FormSuccess message={success} />
+                <FormError message={error} />
                 <Button type="submit">Save</Button>
             </form>
         </Form>

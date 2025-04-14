@@ -4,25 +4,28 @@ import { z } from 'zod';
 import { SettingsSchema } from "@/schemas";
 import { getUserById } from '@/data/user';
 import { db } from '@/lib/db';
+import { logDB } from '@/data/logs';
+import { LogType } from '@prisma/client';
 
 export const changeSettings = async (userId: string, values: z.infer<typeof SettingsSchema>) => {
-const validatedField = SettingsSchema.safeParse(values);
+    console.log("Change settings", { userId, values });
+    const validatedField = SettingsSchema.safeParse(values);
     if (!validatedField.success) {
         return { error: "Invalid field" };
     }
 
-    const {name, english_level } = validatedField.data;
+    const { name, english_level } = validatedField.data;
     try {
-         await db.user.update({
-                    where: {
-                        id: userId,
-                    },
-                    data: {
-                        name: name,
-                        englishLevel: english_level,
-                    },
-                });
-
+        await db.user.update({
+            where: {
+                id: userId,
+            },
+            data: {
+                name: name,
+                englishLevel: english_level,
+            },
+        });
+        logDB(LogType.USER_UPDATED, `changeSettings("${userId}", ${JSON.stringify(validatedField.data)})`);
         return { success: `Settings changed` };
 
     } catch (error) {

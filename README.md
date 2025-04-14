@@ -63,3 +63,7 @@ This GitHub repository contains the codebase for both the server-side and client
 
 > This guide is based from this [video](https://www.youtube.com/watch?v=S7XpTAnSDL4&t=1168s)
 
+
+## Notice
+fixed or improve in the future
+1. in `auth.ts` is contains DB pull every JWT request

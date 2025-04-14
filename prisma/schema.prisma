@@ -23,6 +23,19 @@ enum EnglishLevel {
   	C2
 }
 
+enum LogType {
+	USER_CREATED
+	USER_UPDATED
+	USER_DELETED
+	ACCOUNT_LINKED
+	ACCOUNT_UNLINKED
+	LOGIN
+	LOGOUT
+	PROFILE_UPDATED
+	EMAIL_VERIFIED
+	GET_PROFILE
+}
+
 model User {
 	id             String    @id @default(cuid())
 	name           String?
@@ -57,4 +70,14 @@ model Account {
 	
 	@@unique([provider, providerAccountId])
 	@@map("accounts")
+}
+
+model logs {
+	id        String   @id @default(cuid())
+	userId    String?  @map("user_id")
+	type      LogType  @map("type")
+	action    String
+	createdAt DateTime @default(now()) @map("created_at")
+
+	@@map("logs")
 }
