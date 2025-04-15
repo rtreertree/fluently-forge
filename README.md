@@ -65,5 +65,18 @@ This GitHub repository contains the codebase for both the server-side and client
 
 
 ## Notice
-fixed or improve in the future
+### Notes
+1. OpenAI realtime API with GPT-4o-mini model for 10 mins.
+
+|      Token Type      | Number of token |              Price             | Total (USD) |
+|:--------------------:|:---------------:|:------------------------------:|-------------|
+|      Input Audio     |          27,000 | $0.60 / 1M input tokens        | 0.0162      |
+| Input Audio (Cached) |          91,392 | $0.30 / 1M cached input tokens | 0.2742      |
+|      Input Text      |           6,350 | $10.00 / 1M input tokens       | 0.0635      |
+|  Input Text (Cached) |          21,888 | $0.30 / 1M cached input tokens | 0.0066      |
+|     Output Audio     |          11,000 | $20.00 / 1M output tokens      | 0.22        |
+|      Output Text     |           2,816 | $2.40 / 1M output tokens       | 0.0067      |
+|                      |                 | Total                          | 0.5872      |
+
+### fixed or improve in the future
 1. in `auth.ts` is contains DB pull every JWT request
