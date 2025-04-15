@@ -98,7 +98,7 @@ export function SettingsGeneral() {
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-6">
                 <div>
-                    <h3 className="mb-4 text-lg font-medium">Email Notifications</h3>
+                    <h3 className="mb-4 text-lg font-medium">Account information</h3>
                     <div className="space-y-4">
                         {fields.map((field) => (
                             <SettingsFormField key={field.name} form={form.control} param={field} />
