@@ -5,7 +5,6 @@ import SettingsForm from "../_components/settings/settings-tabs";
 
 const SettingsPage = () => {
     const user = useCurrentUser();
-
     return (
         <SettingsForm />
     );

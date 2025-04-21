@@ -19,11 +19,10 @@ export default async function RootLayout({
     const session = await auth();
 	const cookieStore = await cookies()
   	const defaultOpen = cookieStore.get("sidebar_state")?.value === "true"
- 
 
 	return (
         <SessionProvider session={session}>
-			<SidebarProvider defaultOpen={defaultOpen}>
+			<SidebarProvider defaultOpen={defaultOpen} className="hidden lg:flex">
 				<AppSidebar />
 				<div className="flex-1 flex flex-col">
 					{children}

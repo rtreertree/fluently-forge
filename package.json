@@ -28,9 +28,11 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cross-env": "^7.0.3",
+    "framer-motion": "^12.7.4",
     "lucide-react": "^0.476.0",
     "next": "^15.2.0",
     "next-auth": "^5.0.0-beta.25",
+    "openai": "^4.95.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
@@ -41,7 +43,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@prisma/client": "^6.4.1",
+    "@prisma/client": "^6.6.0",
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -49,7 +51,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "postcss": "^8",
-    "prisma": "^6.5.0",
+    "prisma": "^6.6.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }
