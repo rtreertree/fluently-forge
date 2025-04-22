@@ -1,9 +1,9 @@
 //hooks/use-webrtc.ts
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, use } from "react";
 import { Tool } from "@/lib/tools";
-import { createSession, offerSession } from "@/actions/session";
+import { createSession, offerSession, saveAudio } from "@/actions/session";
 
 const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
     const [status, setStatus] = useState("");
@@ -14,11 +14,19 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
     const dataChannelRef = useRef<RTCDataChannel | null>(null);
     const [msgs, setMsgs] = useState<any[]>([]);
+    const [micOn, setMicOn] = useState(false);
+
     // Add function registry
     const functionRegistry = useRef<Record<string, Function>>({});
     const [currentVolume, setCurrentVolume] = useState(0);
     const analyserRef = useRef<AnalyserNode | null>(null);
     const volumeIntervalRef = useRef<number | null>(null);
+
+    // Add audio recorder
+    const recorderRef = useRef<MediaRecorder | null>(null);
+    const recordedBlobsRef = useRef<Blob[]>([]);
+    const [isRecording, setIsRecording] = useState(false);
+
 
     // Add method to register tool functions
     const registerFunction = (name: string, fn: Function) => {
@@ -42,6 +50,12 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
     const handleDataChannelMessage = async (event: MessageEvent) => {
         try {
             const msg = JSON.parse(event.data);
+
+            if (msg.usage) {
+                // const { total_tokens, prompt_tokens, completion_tokens } = msg.usage;
+                // console.log(`Total tokens: ${total_tokens}, Prompt tokens: ${prompt_tokens}, Completion tokens: ${completion_tokens}`);
+                console.log(msg.usage);
+            }
             if (msg.type === 'response.function_call_arguments.done') {
                 const fn = functionRegistry.current[msg.name];
                 if (fn) {
@@ -122,9 +136,10 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             audioStreamRef.current = stream;
             setupAudioVisualization(stream);
+            setMicOn(true);
 
             setStatus("Fetching ephemeral token...");
-            const session = await createSession();
+            const session = await createSession("alloy");
             const ephemeralToken = session.client_secret.value;
 
             setStatus("Establishing connection...");
@@ -180,9 +195,21 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
                 sdp: sdpResponse,
             });
 
+            const mediaRecorder = new MediaRecorder(stream);
+            recordedBlobsRef.current = [];
+            mediaRecorder.ondataavailable = (event: BlobEvent) => {
+                if (event.data && event.data.size > 0) {
+                    recordedBlobsRef.current.push(event.data);
+                }
+            };
+            mediaRecorder.start();
+            recorderRef.current = mediaRecorder;
+            setIsRecording(true);
+
             peerConnectionRef.current = pc;
             setIsSessionActive(true);
             setStatus("Session established successfully!");
+
         } catch (err) {
             console.error(err);
             setStatus(`Error: ${err}`);
@@ -190,7 +217,48 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
         }
     };
 
+    const sendRecordingToServer = async () => {
+        if (recordedBlobsRef.current.length === 0) return;
+        const audioBlob = new Blob(recordedBlobsRef.current, { type: 'audio/webm' });
+
+        // You might want to customize endpoint, field name, etc.
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'session-audio.webm');
+        setStatus("Uploading audio recording...");
+
+        try {
+            const res = await fetch("/api/session/upload-audio", {
+                method: "POST",
+                body: formData
+            });
+
+            if (!res.ok) {
+                throw new Error("Failed to upload audio");
+            }
+            const data = await res.json();
+            console.log("Audio upload response:", data);
+
+
+            setStatus("Audio recording uploaded.");
+        } catch (error) {
+            console.error("Audio upload failed:", error);
+            setStatus("Audio upload failed.");
+        }
+    };
+
     const stopSession = () => {
+
+        if (recorderRef.current && isRecording) {
+            recorderRef.current.stop();
+            setIsRecording(false);
+      
+            recorderRef.current.onstop = async () => {
+              await sendRecordingToServer();
+              recordedBlobsRef.current = [];
+              recorderRef.current = null;
+            };
+        }
+
         if (dataChannelRef.current) {
             dataChannelRef.current.close();
             dataChannelRef.current = null;
@@ -228,11 +296,19 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
         setIsSessionActive(false);
         setStatus("");
         setMsgs([]);
+        setMicOn(false);
     };
 
     const handleStartStopClick = () => {
         if (isSessionActive) {
-            stopSession();
+            if (audioStreamRef.current) {
+                const audioTracks = audioStreamRef.current.getAudioTracks();
+                if (audioTracks.length > 0) {
+                    const enabled = audioTracks[0].enabled;
+                    audioTracks[0].enabled = !enabled;
+                    setMicOn(!enabled);
+                }
+            }
         } else {
             startSession();
         }
@@ -241,6 +317,7 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
     return {
         status,
         isSessionActive,
+        micOn,
         audioIndicatorRef,
         startSession,
         stopSession,

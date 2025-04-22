@@ -3,9 +3,10 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mic, MicOff } from 'lucide-react';
 import useWebRTCAudioSession from '@/hooks/use-webrtc';
+import { Button } from '@/components/ui/button';
 
-const CircleWaveform: React.FC = () => {
-    const { currentVolume, isSessionActive, handleStartStopClick } = useWebRTCAudioSession('alloy');
+const SessionAgent: React.FC = () => {
+    const { currentVolume, isSessionActive, micOn, handleStartStopClick, stopSession} = useWebRTCAudioSession('alloy');
     const [bars, setBars] = useState(Array(50).fill(0));
 
     useEffect(() => {
@@ -24,23 +25,34 @@ const CircleWaveform: React.FC = () => {
         setBars(Array(50).fill(0));
     };
     
+    const micOnClick = () => {
+        handleStartStopClick();
+    };
+
+    const handleButtonClick = () => {
+        if (isSessionActive) {
+            stopSession();
+        } else {
+            handleStartStopClick();
+        }
+    };
 
     return (
         <>
             <div className='border text-center justify-items-center p-4 rounded-2xl'>
                 <div className="flex items-center justify-center h-full relative" style={{ width: '300px', height: '300px' }}>
-                    {isSessionActive ?
-                        <MicOff
-                            size={24}
-                            className="text-black dark:text-white"
-                            onClick={handleStartStopClick}
-                            style={{ cursor: 'pointer', zIndex: 10 }}
-                        />
-                        :
+                    {micOn ?
                         <Mic
                             size={28}
                             className="text-black dark:text-white"
-                            onClick={handleStartStopClick}
+                            onClick={micOnClick}
+                            style={{ cursor: 'pointer', zIndex: 10 }}
+                        />
+                        :
+                        <MicOff
+                            size={28}
+                            className="text-black dark:text-white"
+                            onClick={micOnClick}
                             style={{ cursor: 'pointer', zIndex: 10 }}
                         />
                     }
@@ -71,6 +83,9 @@ const CircleWaveform: React.FC = () => {
                     </svg>
                     <span className="absolute top-48 w-[calc(100%-70%)] h-[calc(100%-70%)] bg-primary-foreground dark:bg-primary blur-[120px]"></span>
                 </div>
+                <Button onClick={handleButtonClick}>
+                    {isSessionActive ? 'Stop Session' : 'Start Session'}
+                </Button>
             </div>
         </>
     );
@@ -87,4 +102,4 @@ export function ShineCard({ children }: { children: React.ReactNode }) {
     );
 }
 
-export default CircleWaveform;
+export default SessionAgent;
