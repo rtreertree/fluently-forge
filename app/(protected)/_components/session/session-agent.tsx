@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 
 const SessionAgent: React.FC = () => {
     const { currentVolume, isSessionActive, micOn, handleStartStopClick, stopSession} = useWebRTCAudioSession('alloy');
+    const [disabledButton, setDisabledButton] = useState(false);
     const [bars, setBars] = useState(Array(50).fill(0));
 
     useEffect(() => {
@@ -26,14 +27,18 @@ const SessionAgent: React.FC = () => {
     };
     
     const micOnClick = () => {
-        handleStartStopClick();
+        setDisabledButton(true);
     };
 
     const handleButtonClick = () => {
         if (isSessionActive) {
             stopSession();
         } else {
-            handleStartStopClick();
+            setDisabledButton(true);
+            handleStartStopClick().then(() => {
+                setDisabledButton(false);
+                console.log('Session started');
+            });
         }
     };
 
@@ -83,7 +88,7 @@ const SessionAgent: React.FC = () => {
                     </svg>
                     <span className="absolute top-48 w-[calc(100%-70%)] h-[calc(100%-70%)] bg-primary-foreground dark:bg-primary blur-[120px]"></span>
                 </div>
-                <Button onClick={handleButtonClick}>
+                <Button onClick={handleButtonClick} disabled={disabledButton}>
                     {isSessionActive ? 'Stop Session' : 'Start Session'}
                 </Button>
             </div>

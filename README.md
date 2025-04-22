@@ -81,6 +81,3 @@ This GitHub repository contains the codebase for both the server-side and client
 2. To push change in Prisma database make a change and run following command
 	- `npx prisma generate`
 	- `npx prisma db push`
-
-### fixed or improve in the future
-1. in `auth.ts` is contains DB pull every JWT request

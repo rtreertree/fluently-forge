@@ -9,6 +9,8 @@ export async function POST(req: NextRequest) {
         const formData = await req.formData();
         const file = formData.get('audio') as File;
 
+        const fileid = formData.get('filename') as string;
+
         if (!file) {
             return NextResponse.json({ error: 'Audio file is required' }, { status: 400 });
         }
@@ -18,7 +20,7 @@ export async function POST(req: NextRequest) {
         const buffer = Buffer.from(bytes);
 
         // Make a unique filename
-        const filename = `audio_${uuidv4()}.webm`;
+        const filename = `${fileid}.webm`;
 
         // Save to /tmp or a subdirectory of your choosing
         const uploadDir = path.join(process.cwd(), 'tmp');

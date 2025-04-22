@@ -4,8 +4,11 @@
 import { useState, useRef, useEffect, use } from "react";
 import { Tool } from "@/lib/tools";
 import { createSession, offerSession, saveAudio } from "@/actions/session";
+import { useSession } from "next-auth/react";
 
 const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
+    const session = useSession();
+
     const [status, setStatus] = useState("");
     const [isSessionActive, setIsSessionActive] = useState(false);
     const audioIndicatorRef = useRef<HTMLDivElement | null>(null);
@@ -27,6 +30,8 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
     const recordedBlobsRef = useRef<Blob[]>([]);
     const [isRecording, setIsRecording] = useState(false);
 
+    const remoteRecorderRef = useRef<MediaRecorder | null>(null);
+    const remoteRecordedBlobsRef = useRef<Blob[]>([]);
 
     // Add method to register tool functions
     const registerFunction = (name: string, fn: Function) => {
@@ -170,6 +175,26 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
                         console.log('Speech detected with volume:', volume);
                     }
                 }, 100);
+
+                // === Set up remote audio recorder ===
+                if (remoteRecorderRef.current) {
+                    remoteRecorderRef.current.stop();
+                    remoteRecorderRef.current = null;
+                    remoteRecordedBlobsRef.current = [];
+                }
+                try {
+                    const remoteRecorder = new MediaRecorder(e.streams[0]);
+                    remoteRecordedBlobsRef.current = [];
+                    remoteRecorder.ondataavailable = (evt: BlobEvent) => {
+                        if (evt.data && evt.data.size > 0) {
+                            remoteRecordedBlobsRef.current.push(evt.data);
+                        }
+                    };
+                    remoteRecorder.start();
+                    remoteRecorderRef.current = remoteRecorder;
+                } catch (err) {
+                    console.error("Failed to record remote (AI) audio:", err);
+                }
             };
 
             // Add data channel
@@ -220,10 +245,13 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
     const sendRecordingToServer = async () => {
         if (recordedBlobsRef.current.length === 0) return;
         const audioBlob = new Blob(recordedBlobsRef.current, { type: 'audio/webm' });
+        const date = `${Date.now()}`;
 
         // You might want to customize endpoint, field name, etc.
         const formData = new FormData();
         formData.append('audio', audioBlob, 'session-audio.webm');
+        formData.append("isRemote", "false");
+        formData.append("filename", `${session.data?.user.name || "NULL"}${date}[user]`);
         setStatus("Uploading audio recording...");
 
         try {
@@ -236,7 +264,19 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
                 throw new Error("Failed to upload audio");
             }
             const data = await res.json();
-            console.log("Audio upload response:", data);
+
+            if (remoteRecordedBlobsRef.current.length > 0) {
+                const aiBlob = new Blob(remoteRecordedBlobsRef.current, { type: "audio/webm" });
+                const formData = new FormData();
+                formData.append("audio", aiBlob, "ai-voice.webm");
+                formData.append("isRemote", "true");
+                formData.append("filename", `${date}[agent]`);
+
+                await fetch("/api/session/upload-audio", {
+                    method: "POST",
+                    body: formData
+                });
+            }
 
 
             setStatus("Audio recording uploaded.");
@@ -251,12 +291,26 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
         if (recorderRef.current && isRecording) {
             recorderRef.current.stop();
             setIsRecording(false);
-      
+
             recorderRef.current.onstop = async () => {
-              await sendRecordingToServer();
-              recordedBlobsRef.current = [];
-              recorderRef.current = null;
+                await sendRecordingToServer();
+                recordedBlobsRef.current = [];
+                recorderRef.current = null;
             };
+        }
+
+        if (remoteRecorderRef.current) {
+            remoteRecorderRef.current.stop();
+        }
+
+        if (remoteRecorderRef.current) {
+            remoteRecorderRef.current.onstop = async () => {
+                await sendRecordingToServer();
+                remoteRecordedBlobsRef.current = [];
+                remoteRecorderRef.current = null;
+            };
+        } else {
+            sendRecordingToServer(); // If never started
         }
 
         if (dataChannelRef.current) {
@@ -299,7 +353,7 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
         setMicOn(false);
     };
 
-    const handleStartStopClick = () => {
+    const handleStartStopClick = async () => {
         if (isSessionActive) {
             if (audioStreamRef.current) {
                 const audioTracks = audioStreamRef.current.getAudioTracks();
@@ -310,7 +364,7 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
                 }
             }
         } else {
-            startSession();
+            await startSession();
         }
     };
 
