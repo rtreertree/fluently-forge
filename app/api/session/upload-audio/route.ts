@@ -1,38 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+
+
+const saveAudio = async (file: File, filename: string) => {
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    const uploadDir = path.join(process.cwd(), 'tmp');
+    mkdir(uploadDir, { recursive: true });
+
+    const filepath = path.join(uploadDir, filename);
+
+    await writeFile(filepath, buffer);
+};
+
 
 export async function POST(req: NextRequest) {
     try {
         // Read formdata (stream)
+        console.log('Received request');
         const formData = await req.formData();
-        const file = formData.get('audio') as File;
 
-        const fileid = formData.get('filename') as string;
+        const userAudio = formData.get('mixed-audio') as File;
+        const agentAudio = formData.get('mixed-audio') as File;
 
-        if (!file) {
+        const fileid = formData.get('user') as string;
+
+        if (!userAudio && !agentAudio) {
             return NextResponse.json({ error: 'Audio file is required' }, { status: 400 });
         }
 
-        // Get array buffer then Buffer
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
+        saveAudio(userAudio, `user${fileid}.webm`);
+        saveAudio(agentAudio, `agent${fileid}.webm`);
 
-        // Make a unique filename
-        const filename = `${fileid}.webm`;
 
-        // Save to /tmp or a subdirectory of your choosing
-        const uploadDir = path.join(process.cwd(), 'tmp');
-        // Node's fs/promises does NOT automatically create dir, so you might want to ensure it exists
-        await import('fs/promises').then(fs => fs.mkdir(uploadDir, { recursive: true }));
-
-        const filepath = path.join(uploadDir, filename);
-
-        // Write file
-        await writeFile(filepath, buffer);
-
-        return NextResponse.json({ success: true, filename });
+        return NextResponse.json({ success: true }, { status: 200 });
     } catch (err) {
         console.error(err);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

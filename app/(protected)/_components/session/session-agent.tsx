@@ -6,8 +6,7 @@ import useWebRTCAudioSession from '@/hooks/use-webrtc';
 import { Button } from '@/components/ui/button';
 
 const SessionAgent: React.FC = () => {
-    const { currentVolume, isSessionActive, micOn, handleStartStopClick, stopSession} = useWebRTCAudioSession('alloy');
-    const [disabledButton, setDisabledButton] = useState(false);
+    const { currentVolume, isSessionActive, micOn, isPending, handleStartStopClick, stopSession, setMicOnOff} = useWebRTCAudioSession('alloy');
     const [bars, setBars] = useState(Array(50).fill(0));
 
     useEffect(() => {
@@ -27,18 +26,15 @@ const SessionAgent: React.FC = () => {
     };
     
     const micOnClick = () => {
-        setDisabledButton(true);
+        if (!isSessionActive) return;
+        setMicOnOff(!micOn);
     };
 
     const handleButtonClick = () => {
         if (isSessionActive) {
             stopSession();
         } else {
-            setDisabledButton(true);
-            handleStartStopClick().then(() => {
-                setDisabledButton(false);
-                console.log('Session started');
-            });
+            handleStartStopClick();
         }
     };
 
@@ -46,7 +42,7 @@ const SessionAgent: React.FC = () => {
         <>
             <div className='border text-center justify-items-center p-4 rounded-2xl'>
                 <div className="flex items-center justify-center h-full relative" style={{ width: '300px', height: '300px' }}>
-                    {micOn ?
+                    {micOn && !isPending ?
                         <Mic
                             size={28}
                             className="text-black dark:text-white"
@@ -88,7 +84,7 @@ const SessionAgent: React.FC = () => {
                     </svg>
                     <span className="absolute top-48 w-[calc(100%-70%)] h-[calc(100%-70%)] bg-primary-foreground dark:bg-primary blur-[120px]"></span>
                 </div>
-                <Button onClick={handleButtonClick} disabled={disabledButton}>
+                <Button onClick={handleButtonClick} disabled={isPending}>
                     {isSessionActive ? 'Stop Session' : 'Start Session'}
                 </Button>
             </div>
