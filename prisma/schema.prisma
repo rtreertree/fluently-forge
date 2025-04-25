@@ -83,11 +83,11 @@ model logs {
 	@@map("logs")
 }
 
-model active_sessions {
+model sessions {
 	id        String   @id @default(cuid())
 	userId    String?  @map("user_id")
-	token     String
 	createdAt DateTime @default(now()) @map("created_at")
+	topic     String?
 
 	@@map("active_sessions")
 }

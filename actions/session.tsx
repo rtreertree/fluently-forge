@@ -5,9 +5,6 @@ import { logDB } from "@/data/logs";
 import { LogType } from "@prisma/client";
 import { db } from '@/lib/db';
 
-import { v4 as uuidv4 } from "uuid";
-import path from 'path';
-import { mkdir, writeFile } from 'fs/promises';
 
 export const createSession = async (voice: string, instructions?: string) => {
     const apikey = process.env.OPENAI_API_KEY;
@@ -68,23 +65,3 @@ export const offerSession = async (offerSDP: string, EPHEMERAL_KEY: string) => {
 
     return await sdpResponse.text();
 };
-
-export async function saveAudio(formData: FormData) {
-    // Get Blob from FormData
-    const file = formData.get("audio") as File;
-    if (!file) throw new Error("No audio file received");
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    const uploadDir = path.join(process.cwd(), "tmp");
-    // Ensure directory exists
-    await mkdir(uploadDir, { recursive: true });
-
-    const filename = `audio_${uuidv4()}.webm`;
-    const filepath = path.join(uploadDir, filename);
-
-    await writeFile(filepath, buffer);
-
-    // You can return the path/filename or whatever you prefer
-    return { success: true, filename };
-}

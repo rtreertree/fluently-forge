@@ -6,7 +6,7 @@ import useWebRTCAudioSession from '@/hooks/use-webrtc';
 import { Button } from '@/components/ui/button';
 
 const SessionAgent: React.FC = () => {
-    const { currentVolume, isSessionActive, micOn, isPending, handleStartStopClick, stopSession, setMicOnOff} = useWebRTCAudioSession('alloy');
+    const { currentVolume, isSessionActive, micOn, isPending, handleStartStopClick, stopSession, setMicOnOff, sendSystemMessage} = useWebRTCAudioSession('alloy');
     const [bars, setBars] = useState(Array(50).fill(0));
 
     useEffect(() => {
@@ -36,6 +36,10 @@ const SessionAgent: React.FC = () => {
         } else {
             handleStartStopClick();
         }
+    };
+
+    const sendSystemMessageClick = () => {
+        sendSystemMessage('End this conversation smoothly');
     };
 
     return (
@@ -87,6 +91,10 @@ const SessionAgent: React.FC = () => {
                 <Button onClick={handleButtonClick} disabled={isPending}>
                     {isSessionActive ? 'Stop Session' : 'Start Session'}
                 </Button>
+                <Button onClick={sendSystemMessageClick}>
+                    Send System Message
+                </Button>
+
             </div>
         </>
     );

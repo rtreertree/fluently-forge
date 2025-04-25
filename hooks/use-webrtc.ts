@@ -3,10 +3,12 @@
 
 import { useState, useRef, useEffect, use } from "react";
 import { Tool } from "@/lib/tools";
-import { createSession, offerSession, saveAudio } from "@/actions/session";
+import { createSession, offerSession } from "@/actions/session";
 import { useSession } from "next-auth/react";
+import { mergeAudioBlobsInParallel } from "@/lib/audio";
+import { send } from "process";
 
-const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
+const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Tool[]) => {
     const session = useSession();
 
     const [status, setStatus] = useState("");
@@ -34,6 +36,35 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
     const remoteRecorderRef = useRef<MediaRecorder | null>(null);
     const remoteRecordedBlobsRef = useRef<Blob[]>([]);
 
+
+    const sendSystemMessage = (message: string) => {
+        if (!dataChannelRef.current || dataChannelRef.current.readyState !== "open") {
+            console.warn("Data channel not open. Cannot send system message.");
+            return;
+        }
+
+        const systemMsg = {
+            type: "conversation.item.create",
+            item: {
+                role: "user",
+                type: "message",
+                content: [
+                    {
+                        type: "input_text",
+                        text: "End this conversation smoothly now.",
+                    },
+                ],
+            }
+        };
+
+        try {
+            dataChannelRef.current.send(JSON.stringify(systemMsg));
+            setMsgs(prev => [...prev, systemMsg]);
+        } catch (err) {
+            console.error("Failed to send system message:", err);
+        }
+    }
+
     // Add method to register tool functions
     const registerFunction = (name: string, fn: Function) => {
         functionRegistry.current[name] = fn;
@@ -56,11 +87,9 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
     const handleDataChannelMessage = async (event: MessageEvent) => {
         try {
             const msg = JSON.parse(event.data);
-
-            if (msg.usage) {
-                // const { total_tokens, prompt_tokens, completion_tokens } = msg.usage;
-                // console.log(`Total tokens: ${total_tokens}, Prompt tokens: ${prompt_tokens}, Completion tokens: ${completion_tokens}`);
-                console.log(msg.usage);
+            if (msg.type === 'error') {
+                console.error('Error from server:', msg);
+                return;
             }
             if (msg.type === 'response.function_call_arguments.done') {
                 const fn = functionRegistry.current[msg.name];
@@ -214,6 +243,7 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
 
             dataChannel.onmessage = handleDataChannelMessage;
 
+
             pc.addTrack(stream.getTracks()[0]);
 
             const offer = await pc.createOffer();
@@ -253,93 +283,48 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
     const sendRecordingToServer = async () => {
         if (recordedBlobsRef.current.length === 0 && remoteRecordedBlobsRef.current.length === 0) return;
 
-        const userBlob = new Blob(recordedBlobsRef.current, { type: 'audio/webm' });
-        const agentBlob = new Blob(remoteRecordedBlobsRef.current, { type: "audio/webm" });
+        const userBlob = new Blob(recordedBlobsRef.current, { type: 'audio/wav' });
+        const agentBlob = new Blob(remoteRecordedBlobsRef.current, { type: "audio/wev" });
+
+        console.log("User blob size:", userBlob.size);
+        console.log("Agent blob size:", agentBlob.size);
+
+        const startTime = Date.now();
+        const merged = await mergeAudioBlobsInParallel([userBlob, agentBlob]);
+
+        if (!merged) {
+            console.error("Failed to merge audio blobs");
+            return;
+        }
+
+        const endTime = Date.now();
+
+        console.log("Merging time:", endTime - startTime, "ms");
+        console.log("Merged blob size:", merged.size);
+
 
         setStatus("Processing audio...");
 
+        const formData = new FormData();
+        formData.append("mixed-audio", merged, 'mixed-audio.webm');
+        formData.append("user", `${session.data?.user.name || "NULL"}`);
 
-        try {
-            const audioContext = new AudioContext();
+        setStatus("Uploading mixed audio...");
 
-            const [userBuffer, agentBuffer] = await Promise.all([
-                blobToAudioBuffer(audioContext, userBlob),
-                blobToAudioBuffer(audioContext, agentBlob)
-            ]);
+        const res = await fetch("/api/session/upload-audio", {
+            method: "POST",
+            body: formData
+        });
 
-            const mixedBuffer = mixAudioBuffers(audioContext, userBuffer, agentBuffer);
-            const mixedBlob = await audioBufferToBlob(audioContext, mixedBuffer);
+        if (!res.ok) throw new Error("Failed to upload audio");
+        const data = await res.json();
 
-            const formData = new FormData();
-            formData.append("mixed-audio", mixedBlob, 'mixed-audio.webm');
-            formData.append("user", `${session.data?.user.name || "NULL"}`);
-
-            setStatus("Uploading mixed audio...");
-
-            const res = await fetch("/api/session/upload-audio", {
-                method: "POST",
-                body: formData
-            });
-
-            if (!res.ok) throw new Error("Failed to upload audio");
-
-            const data = await res.json();
-
-            if (data.error) throw new Error(data.error);
-            if (data.success) {
-                console.log("Audio uploaded successfully:", data.filename);
-                setStatus("Audio recording uploaded successfully.");
-            }
-        } catch (error) {
-            console.error("Audio upload failed:", error);
-            setStatus("Audio upload failed.");
+        if (data.error) throw new Error(data.error);
+        if (data.success) {
+            console.log("Audio uploaded successfully:", data);
+            setStatus("Audio recording uploaded successfully.");
         }
     };
-
-    // Helper: convert Blob to AudioBuffer
-    async function blobToAudioBuffer(context: AudioContext, blob: Blob): Promise<AudioBuffer> {
-        if (blob.size === 0) throw new Error("Audio blob is empty.");
-
-        const arrayBuffer = await blob.arrayBuffer();
-        return await context.decodeAudioData(arrayBuffer);
-    }
-
-    // Helper: mix two AudioBuffers
-    function mixAudioBuffers(context: AudioContext, buffer1: AudioBuffer, buffer2: AudioBuffer): AudioBuffer {
-        const maxLength = Math.max(buffer1.length, buffer2.length);
-        const numChannels = Math.max(buffer1.numberOfChannels, buffer2.numberOfChannels);
-        const output = context.createBuffer(numChannels, maxLength, context.sampleRate);
-
-        for (let channel = 0; channel < numChannels; channel++) {
-            const outputData = output.getChannelData(channel);
-            const data1 = buffer1.getChannelData(channel % buffer1.numberOfChannels);
-            const data2 = buffer2.getChannelData(channel % buffer2.numberOfChannels);
-
-            for (let i = 0; i < maxLength; i++) {
-                outputData[i] = (data1[i] || 0) + (data2[i] || 0);
-            }
-        }
-        return output;
-    }
-
-    // Helper: convert AudioBuffer to Blob
-    async function audioBufferToBlob(context: AudioContext, buffer: AudioBuffer): Promise<Blob> {
-        const dest = context.createMediaStreamDestination();
-        const source = context.createBufferSource();
-        source.buffer = buffer;
-        source.connect(dest);
-        source.start();
-
-        const mediaRecorder = new MediaRecorder(dest.stream);
-        const chunks: BlobPart[] = [];
-
-        return new Promise((resolve) => {
-            mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-            mediaRecorder.onstop = () => resolve(new Blob(chunks, { type: 'audio/webm' }));
-            mediaRecorder.start();
-            source.onended = () => mediaRecorder.stop();
-        });
-    }
 
     // Add this helper function somewhere in the file (above or below stopSession):
     function stopRecorderAndWait(recorder: MediaRecorder | null): Promise<void> {
@@ -358,19 +343,6 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
         setStatus("Stopping session...");
         setMicOn(false);
         setIsPending(true);
-
-        // Stop both recorders and wait for their onstop events
-        const localStop = stopRecorderAndWait(recorderRef.current);
-        const remoteStop = stopRecorderAndWait(remoteRecorderRef.current);
-
-        await Promise.all([localStop, remoteStop]); // Wait for both recorders to fully stop
-
-        await sendRecordingToServer();
-
-        recordedBlobsRef.current = [];
-        remoteRecordedBlobsRef.current = [];
-        recorderRef.current = null;
-        remoteRecorderRef.current = null;
 
         if (dataChannelRef.current) {
             dataChannelRef.current.close();
@@ -398,6 +370,19 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
         if (analyserRef.current) {
             analyserRef.current = null;
         }
+
+        // Stop both recorders and wait for their onstop events
+        const localStop = stopRecorderAndWait(recorderRef.current);
+        const remoteStop = stopRecorderAndWait(remoteRecorderRef.current);
+
+        await Promise.all([localStop, remoteStop]); // Wait for both recorders to fully stop
+        await sendRecordingToServer();
+
+        recordedBlobsRef.current = [];
+        remoteRecordedBlobsRef.current = [];
+        recorderRef.current = null;
+        remoteRecorderRef.current = null;
+
         setCurrentVolume(0);
         setIsSessionActive(false);
         setStatus("");
@@ -407,7 +392,6 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
 
     };
 
-
     // set mic on/off
     const setMicOnOff = (isOn: boolean) => {
         if (audioStreamRef.current) {
@@ -416,7 +400,7 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
                 audioTracks[0].enabled = isOn;
             }
         }
-    };  
+    };
 
 
     const handleStartStopClick = async () => {
@@ -438,6 +422,7 @@ const useWebRTCAudioSession = (voice: string, tools?: Tool[]) => {
         handleStartStopClick,
         registerFunction,
         setMicOnOff,
+        sendSystemMessage,
         msgs,
         currentVolume
     };
