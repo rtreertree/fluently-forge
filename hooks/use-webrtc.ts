@@ -6,7 +6,6 @@ import { Tool } from "@/lib/tools";
 import { createSession, offerSession } from "@/actions/session";
 import { useSession } from "next-auth/react";
 import { mergeAudioBlobsInParallel } from "@/lib/audio";
-import { send } from "process";
 
 const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Tool[]) => {
     const session = useSession();
@@ -51,15 +50,20 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
                 content: [
                     {
                         type: "input_text",
-                        text: "End this conversation smoothly now.",
+                        text: "1 minute left, Try to wrap up the conversation. and end the conversation smoothly.",
                     },
                 ],
             }
         };
 
+        const triggerMsg = {
+            type: "response.create",
+        };
+
         try {
             dataChannelRef.current.send(JSON.stringify(systemMsg));
             setMsgs(prev => [...prev, systemMsg]);
+            dataChannelRef.current.send(JSON.stringify(triggerMsg));
         } catch (err) {
             console.error("Failed to send system message:", err);
         }
@@ -91,6 +95,11 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
                 console.error('Error from server:', msg);
                 return;
             }
+
+            if (msg.type === 'conversation.item.created') {
+                console.log('Received message:', msg.item);
+            }
+
             if (msg.type === 'response.function_call_arguments.done') {
                 const fn = functionRegistry.current[msg.name];
                 if (fn) {
@@ -175,7 +184,6 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             audioStreamRef.current = stream;
             setupAudioVisualization(stream);
-            setMicOn(true);
 
             setStatus("Fetching ephemeral token...");
             const session = await createSession("alloy");
@@ -229,8 +237,6 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
                 } catch (err) {
                     console.error("Failed to record remote (AI) audio:", err);
                 }
-
-                setIsPending(false);
             };
 
             // Add data channel
@@ -271,6 +277,9 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
             peerConnectionRef.current = pc;
             setIsSessionActive(true);
             setStatus("Session established successfully!");
+
+            setIsPending(false);
+            setMicOn(true);
 
         } catch (err) {
             console.error(err);

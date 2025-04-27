@@ -5,7 +5,10 @@ import { cookies } from "next/headers"
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@/auth";
 import { AppSidebar } from "./_components/sidebar";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarBreadcrumb } from "./_components/sidebar-breadcrumb";
+
+
 export const metadata: Metadata = {
 	title: "Dashboard"
 };
@@ -15,20 +18,20 @@ export default async function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-
-    const session = await auth();
+	const session = await auth();
 	const cookieStore = await cookies()
-  	const defaultOpen = cookieStore.get("sidebar_state")?.value === "true"
+	const defaultOpen = cookieStore.get("sidebar_state")?.value === "true"
 
 	return (
-        <SessionProvider session={session}>
-			<SidebarProvider defaultOpen={defaultOpen} className="hidden lg:flex">
+		<SessionProvider session={session}>
+			<SidebarProvider defaultOpen={defaultOpen}>
 				<AppSidebar />
-				<div className="flex-1 flex flex-col">
+				<SidebarInset className="overflow-hidden h-screen">
+					<SidebarBreadcrumb />
 					{children}
-				</div>
+				</SidebarInset>
 			</SidebarProvider>
-        </SessionProvider>
-	
+		</SessionProvider>
+
 	);
 }
