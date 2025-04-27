@@ -78,5 +78,6 @@ This GitHub repository contains the codebase for both the server-side and client
 |      Output Text     |           2,816 | $2.40 / 1M output tokens       | 0.0067      |
 |                      |                 | Total                          | 0.5872      |
 
-### fixed or improve in the future
-1. in `auth.ts` is contains DB pull every JWT request
+2. To push change in Prisma database make a change and run following command
+	- `npx prisma generate`
+	- `npx prisma db push`

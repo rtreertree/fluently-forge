@@ -34,6 +34,7 @@ enum LogType {
 	PROFILE_UPDATED
 	EMAIL_VERIFIED
 	GET_PROFILE
+	SESSION
 }
 
 model User {
@@ -80,4 +81,13 @@ model logs {
 	createdAt DateTime @default(now()) @map("created_at")
 
 	@@map("logs")
+}
+
+model sessions {
+	id        String   @id @default(cuid())
+	userId    String?  @map("user_id")
+	createdAt DateTime @default(now()) @map("created_at")
+	topic     String?
+
+	@@map("active_sessions")
 }
