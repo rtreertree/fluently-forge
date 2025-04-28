@@ -31,16 +31,11 @@ export const AppSidebar = () => {
     ];
 
     const pathname = usePathname();
-
-    if (pathname.includes("session/active")) {
-        return null;
-    }
-
+   
     return (
         <Sidebar
             collapsible="icon"
             style={{
-                // position: "",
                 height: "100vh",
                 boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
             }}

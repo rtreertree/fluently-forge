@@ -2,8 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const SessionCreateCard: React.FC = () => {
+
+    const handleStartSession = () => {
+        window.location.href = "/session/active/this is a session id";
+    };
+
     return (
-        <Card className="w-[300px] h-[400px] bg-white shadow-lg rounded-lg flex flex-col">
+        <Card className="w-[300px] h-[400px] shadow-lg rounded-lg flex flex-col">
             <CardHeader className="flex flex-col items-center justify-center">
                 <CardTitle className="text-center text-2xl font-bold my-2">
                     Small Talk
@@ -18,7 +23,7 @@ const SessionCreateCard: React.FC = () => {
             </CardContent>
 
             <CardFooter className="flex justify-center items-center p-4">
-                <Button className="w-full">
+                <Button className="w-full" onClick={handleStartSession}>
                     Start a Session
                 </Button>
             </CardFooter>
