@@ -89,11 +89,11 @@ const SessionAgent: React.FC = () => {
                     <span className="absolute top-48 w-[calc(100%-70%)] h-[calc(100%-70%)] bg-primary-foreground dark:bg-primary blur-[120px]"></span>
                 </div>
                 <Button onClick={handleButtonClick} disabled={isPending}>
-                    {isSessionActive ? 'Stop Session' : 'Start Session'}
+                    {isSessionActive ? 'Stop Session' : 'Start'}
                 </Button>
-                <Button onClick={sendSystemMessageClick}>
+                {/* <Button onClick={sendSystemMessageClick}>
                     Send System Message
-                </Button>
+                </Button> */}
 
             </div>
         </>
