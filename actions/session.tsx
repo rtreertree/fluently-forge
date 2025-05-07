@@ -6,7 +6,7 @@ import { LogType } from "@prisma/client";
 import { db } from '@/lib/db';
 
 
-export const createSession = async (voice: string, instructions?: string) => {
+export const createSession = async (userid: string,voice: string, instructions?: string) => {
     const apikey = process.env.OPENAI_API_KEY;
     const model = process.env.OPENAI_MODEL || "gpt-4o-mini-realtime-preview";
     const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
@@ -30,16 +30,38 @@ export const createSession = async (voice: string, instructions?: string) => {
 
     logDB(LogType.SESSION, `Session create with ID: ${data.id}`);
 
-    await db.active_sessions.create({
+    const session = await db.sessions.create({
         data: {
-            userId: "user_id",
+            userId: userid,
             createdAt: new Date(),
-            token: "data.token",
+            token: data.client_secret.value,
         }
     });
 
-    return data;
+    return session.id;
 };
+
+export const getSession = async (sessionId: string) => {
+    const session = await db.sessions.findFirst({
+        where: {
+            id: sessionId,
+        },
+    })
+    return session;
+}
+
+export const endSession = async (sessionId: string) => {
+    const session = await db.sessions.update({
+        where: {
+            id: sessionId,
+        },
+        data: {
+            endedAt: new Date(),
+            ended: true,
+            token: "NULL",
+        }
+    })
+}
 
 export const offerSession = async (offerSDP: string, EPHEMERAL_KEY: string) => {
     const baseUrl = "https://api.openai.com/v1/realtime";

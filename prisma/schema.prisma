@@ -85,9 +85,12 @@ model logs {
 
 model sessions {
 	id        String   @id @default(cuid())
-	userId    String?  @map("user_id")
+	userId    String  @map("user_id")
 	createdAt DateTime @default(now()) @map("created_at")
 	topic     String?
+	endedAt   DateTime? @map("ended_at")
+	ended     Boolean  @default(false)
+	token	  String
 
-	@@map("active_sessions")
+	@@map("sessions")
 }

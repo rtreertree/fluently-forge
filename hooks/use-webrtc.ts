@@ -3,12 +3,18 @@
 
 import { useState, useRef, useEffect, use } from "react";
 import { Tool } from "@/lib/tools";
-import { createSession, offerSession } from "@/actions/session";
+import { createSession, endSession, getSession, offerSession } from "@/actions/session";
 import { useSession } from "next-auth/react";
 import { mergeAudioBlobsInParallel } from "@/lib/audio";
+import { useSearchParams } from 'next/navigation'
+import { uploadSession } from "@/actions/fileHandler";
+import { Readable } from "stream";
 
 const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Tool[]) => {
     const session = useSession();
+    const searchParams = useSearchParams();
+
+    const sessionIdParam = searchParams.get("id");
 
     const [status, setStatus] = useState("");
     const [isSessionActive, setIsSessionActive] = useState(false);
@@ -20,6 +26,8 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
     const [msgs, setMsgs] = useState<any[]>([]);
     const [micOn, setMicOn] = useState(false);
     const [isPending, setIsPending] = useState(false);
+
+    const [sessoinID, setSessionID] = useState<string | null>(null);
 
     // Add function registry
     const functionRegistry = useRef<Record<string, Function>>({});
@@ -180,14 +188,30 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
     const startSession = async () => {
         try {
             setIsPending(true);
+
+
+            // Check session logic goes here
+            setStatus("Fetching ephemeral token...");
+            const session = await getSession(sessionIdParam || "");
+            if (!session) {
+                setStatus("Session not found");
+                return;
+            }
+
+            if (session.ended || session.endedAt || session.token === "NULL") {
+                setIsPending(true);
+                setStatus("Session has ended");
+                return;
+            }
+            const ephemeralToken = session.token;
+            setSessionID(session.id);
+            // End
+
             setStatus("Requesting microphone access...");
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             audioStreamRef.current = stream;
             setupAudioVisualization(stream);
 
-            setStatus("Fetching ephemeral token...");
-            const session = await createSession("alloy");
-            const ephemeralToken = session.client_secret.value;
 
             setStatus("Establishing connection...");
 
@@ -292,47 +316,47 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
     const sendRecordingToServer = async () => {
         if (recordedBlobsRef.current.length === 0 && remoteRecordedBlobsRef.current.length === 0) return;
 
-        const userBlob = new Blob(recordedBlobsRef.current, { type: 'audio/wav' });
-        const agentBlob = new Blob(remoteRecordedBlobsRef.current, { type: "audio/wev" });
+        const userBlob = new Blob(recordedBlobsRef.current, { type: 'audio/webm' });
+        const agentBlob = new Blob(remoteRecordedBlobsRef.current, { type: "audio/webm" });
 
-        console.log("User blob size:", userBlob.size);
-        console.log("Agent blob size:", agentBlob.size);
+        const userBlobWav = await mergeAudioBlobsInParallel([userBlob]);
+        const agentBlobWav = await mergeAudioBlobsInParallel([agentBlob]);
 
-        const startTime = Date.now();
+        setStatus("Processing audio...");
         const merged = await mergeAudioBlobsInParallel([userBlob, agentBlob]);
-
-        if (!merged) {
-            console.error("Failed to merge audio blobs");
+        if (!merged || !agentBlobWav || !userBlobWav) {
+            setStatus("Failed to convert audio blobs");
+            console.error("Failed to convert audio blobs");
             return;
         }
 
-        const endTime = Date.now();
-
-        console.log("Merging time:", endTime - startTime, "ms");
-        console.log("Merged blob size:", merged.size);
-
-
-        setStatus("Processing audio...");
-
+        // create form data
         const formData = new FormData();
-        formData.append("mixed-audio", merged, 'mixed-audio.webm');
-        formData.append("user", `${session.data?.user.name || "NULL"}`);
+        formData.append("user-audio", userBlobWav);
+        formData.append("agent-audio", agentBlobWav);
+        formData.append("mixed-audio", merged);
+        formData.append("user-id", session.data?.user.id || "");
+        formData.append("session-id", sessoinID as string || "");
 
-        setStatus("Uploading mixed audio...");
+        setStatus("Uploading audio...");
+        try {
+            const response = await fetch("/api/session/upload-audio", {
+                method: "POST",
+                body: formData,
+            });
 
-        const res = await fetch("/api/session/upload-audio", {
-            method: "POST",
-            body: formData
-        });
+            if (!response.ok) {
+                throw new Error("Failed to upload audio");
+            }
 
-        if (!res.ok) throw new Error("Failed to upload audio");
-        const data = await res.json();
-
-        if (data.error) throw new Error(data.error);
-        if (data.success) {
-            console.log("Audio uploaded successfully:", data);
-            setStatus("Audio recording uploaded successfully.");
+            const data = await response.json();
+            console.log("Upload successful:", data);
+        } catch (err) {
+            console.error("Error uploading audio:", err);
         }
+
+        setStatus("Audio uploaded successfully!");
+        console.log("Audio uploaded successfully!");
     };
 
     // Add this helper function somewhere in the file (above or below stopSession):
@@ -386,6 +410,10 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
 
         await Promise.all([localStop, remoteStop]); // Wait for both recorders to fully stop
         await sendRecordingToServer();
+
+        endSession(sessoinID || "").catch((err) => {
+            console.error("Error ending session:", err);
+        });
 
         recordedBlobsRef.current = [];
         remoteRecordedBlobsRef.current = [];

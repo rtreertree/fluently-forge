@@ -1,10 +1,13 @@
+import { createSession } from "@/actions/session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSession } from "next-auth/react";
 
 const SessionCreateCard: React.FC = () => {
-
-    const handleStartSession = () => {
-        window.location.href = "/session/active/this is a session id";
+    const session = useSession();
+    const handleStartSession = async () => {
+        const id = await  createSession(session.data?.user.id as string, "alloy");
+        window.location.href = `/session/active/?id=${id}`;
     };
 
     return (
