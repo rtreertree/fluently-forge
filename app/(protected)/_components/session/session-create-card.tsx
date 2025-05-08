@@ -1,13 +1,18 @@
+import { createSession } from "@/actions/session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSession } from "next-auth/react";
+
 
 interface SessionCreateCardProps {
     itemIndex: number; // Accept the index of the item as a prop
 }
-const SessionCreateCard: React.FC<SessionCreateCardProps> = ({ itemIndex }) => {
+const SessionCreateCard: React.FC<SessionCreateCardProps> = ({ itemIndex })=> {
+    const session = useSession();
+    const handleStartSession = async () => {
+        const id = await  createSession(session.data?.user.id as string, "alloy");
+        window.location.href = `/session/active/?id=${id}`;
 
-    const handleStartSession = () => {
-        window.location.href = "/session/active/this is a session id";
     };
 
     return (

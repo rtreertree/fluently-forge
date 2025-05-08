@@ -6,7 +6,7 @@ import useWebRTCAudioSession from '@/hooks/use-webrtc';
 import { Button } from '@/components/ui/button';
 
 const SessionAgent: React.FC = () => {
-    const { currentVolume, isSessionActive, micOn, isPending, handleStartStopClick, stopSession, setMicOnOff, sendSystemMessage} = useWebRTCAudioSession('alloy');
+    const { currentVolume, isSessionActive, micOn, isPending, status,handleStartStopClick, stopSession, setMicOnOff, sendSystemMessage} = useWebRTCAudioSession('alloy');
     const [bars, setBars] = useState(Array(50).fill(0));
 
     useEffect(() => {
@@ -45,6 +45,7 @@ const SessionAgent: React.FC = () => {
     return (
         <>
             <div className='border text-center justify-items-center p-4 rounded-2xl'>
+                <h1 className='text-2xl font-bold mb-4 pt-2'>{status}</h1>
                 <div className="flex items-center justify-center h-full relative" style={{ width: '300px', height: '300px' }}>
                     {micOn && !isPending ?
                         <Mic
