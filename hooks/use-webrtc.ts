@@ -426,7 +426,6 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
         setMsgs([]);
         setMicOn(false);
         setIsPending(false);
-
     };
 
     // set mic on/off
