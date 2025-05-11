@@ -1,23 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 import { uploadSession } from '@/actions/fileHandler';
+import { db } from '@/lib/db';
 
-
-const saveAudio = async (file: File, filename: string) => {
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    const uploadDir = path.join(process.cwd(), 'tmp');
-    mkdir(uploadDir, { recursive: true });
-
-    const filepath = path.join(uploadDir, filename);
-
-    await writeFile(filepath, buffer);
-};
 
 
 export async function POST(req: NextRequest) {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    console.log('Token:', token);
+    // check if the token is valid
+    const session = await db.user.findFirst({
+        where: {
+            id: token,
+        },
+    });
+
+    if (!session) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+
     try {
         // Read formdata (stream)
         const formData = await req.formData();

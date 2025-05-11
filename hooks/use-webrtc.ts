@@ -189,7 +189,6 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
         try {
             setIsPending(true);
 
-
             // Check session logic goes here
             setStatus("Fetching ephemeral token...");
             const session = await getSession(sessionIdParam || "");
@@ -205,7 +204,6 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
             }
             const ephemeralToken = session.token;
             setSessionID(session.id);
-            // End
 
             setStatus("Requesting microphone access...");
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -214,7 +212,6 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
 
 
             setStatus("Establishing connection...");
-
             const pc = new RTCPeerConnection();
             const audioEl = document.createElement("audio");
             audioEl.autoplay = true;
@@ -279,7 +276,7 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
 
-            const sdpResponse = await offerSession(offer.sdp as string, ephemeralToken);
+            const sdpResponse = await offerSession(offer.sdp as string, ephemeralToken as string);
 
 
             await pc.setRemoteDescription({
@@ -339,9 +336,13 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
         formData.append("session-id", sessoinID as string || "");
 
         setStatus("Uploading audio...");
+
         try {
             const response = await fetch("/api/session/upload-audio", {
                 method: "POST",
+                headers: {
+                    Authorization: `Bearer ${session.data?.user.id}`,
+                },
                 body: formData,
             });
 
@@ -458,8 +459,7 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
         handleStartStopClick,
         registerFunction,
         setMicOnOff,
-        sendSystemMessage,
-        msgs,
+            msgs,
         currentVolume
     };
 };
