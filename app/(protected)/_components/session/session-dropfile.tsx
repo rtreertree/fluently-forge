@@ -78,7 +78,6 @@ const SessionDropFile: React.FC<SessionDropFileProps> = ({ onClose }) => {
                     className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
                     onClick={onClose}
                 >
-                    X
                 </button>
             </div>
         </div>
