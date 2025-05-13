@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { getMonologueQuestion, validateTopic } from "@/actions/openaiHandler";
 import { useState } from "react";
 import { ExclamationTriangleIcon, CountdownTimerIcon } from '@radix-ui/react-icons';
-import { createMonologueSession, createSession } from "@/actions/session";
+import { createMonologueSession } from "@/actions/session";
 import { useSession } from "next-auth/react";
 import { Separator } from "@/components/ui/separator";
 

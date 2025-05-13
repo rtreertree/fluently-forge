@@ -184,6 +184,7 @@ export function useVoiceRecorder() {
 	}, [isRecording]);
 
 	const save = useCallback(() => {
+		console.log(audioBlob);
 		if (!audioBlob) return null;
 		return audioBlob;
 	}, [audioBlob]);

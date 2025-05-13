@@ -29,15 +29,6 @@ const SessionCreateCard: React.FC<SessionCreateCardProps> = ({ type }: SessionCr
     const session = useSession();
     const sessionDescription = items.find((item) => item.type === type) as { name: string; description: string; link: string; type: SessionType };
 
-    const ButtonClick = async () => {
-        const isSessionExists = await isUserInSession(session.data?.user.id as string);
-        if (isSessionExists) {
-            alert("You already have an active session. Please end it before starting a new one.");
-            return;
-        };
-
-    };
-
 
     return (
         <>
@@ -70,7 +61,7 @@ const SessionCreateCard: React.FC<SessionCreateCardProps> = ({ type }: SessionCr
                     </CardContent>
                     <CardFooter className="flex justify-center items-center p-4">
                         <DialogTrigger asChild>
-                            <Button className="w-full" onClick={ButtonClick}>
+                            <Button className="w-full">
                                 Start a Session
                             </Button>
                         </DialogTrigger>

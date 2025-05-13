@@ -23,8 +23,15 @@ interface SessionResponse {
 
 
 export const createSession = async (sessionSettings: createSessionInterface): Promise<SessionResponse> => {
-    const id = uuid();
+    const isInSession = await isUserInSession(sessionSettings.userId);
+    if (isInSession) {
+        return {
+            id: "",
+            errormessage: "You are already in the session"
+        };
+    }
 
+    const id = uuid();
     // Create the DB session first, synchronously (we must do this before returning)
     await db.sessions.create({
         data: {
@@ -106,19 +113,31 @@ export const getSession = async (sessionId: string) => {
 }
 
 export const isUserInSession = async (userId: string) => {
-    const sessions = await db.sessions.findMany({
-        where: {
-            userId: userId,
-            status: "ACTIVE",
-        },
-    });
+    const timelimit = new Date(Date.now() - 5 * 60 * 1000);
 
-    if (sessions.length > 0) {
-        return true;
-    } else {
-        return false;
-    }
-}
+    const [, activeSession] = await db.$transaction([
+        db.sessions.updateMany({
+            where: {
+                userId,
+                status: "ACTIVE",
+                createdAt: { lt: timelimit },
+            },
+            data: {
+                token: "NULL",
+                status: "CANCELLED",
+            },
+        }),
+        db.sessions.findFirst({
+            where: {
+                userId,
+                status: "ACTIVE",
+                createdAt: { gte: timelimit },
+            },
+        }),
+    ]);
+
+    return Boolean(activeSession);
+};
 
 export const endSession = async (sessionId: string) => {
     const session = await db.sessions.update({
