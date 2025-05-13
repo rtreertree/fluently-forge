@@ -1,4 +1,4 @@
-import { createSession, isUserInSession } from "@/actions/session";
+import { isUserInSession } from "@/actions/session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { SessionType } from "@prisma/client";
@@ -7,7 +7,6 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,

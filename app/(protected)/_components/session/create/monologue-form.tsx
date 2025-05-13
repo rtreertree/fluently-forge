@@ -47,9 +47,8 @@ const MonologueForm = () => {
         setError(false);
         const isValid = await validateTopic(values.topic);
         if (isValid) {
-            setChecking(false);
-            // monologue session
             const sessionResponse = await createMonologueSession(values.topic, session.data?.user?.id || "");
+            setChecking(false);
             if (sessionResponse.id) {
                 window.location.href = `/session/active?id=${sessionResponse.id}`;
             }

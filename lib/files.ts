@@ -1,7 +1,7 @@
 import * as Minio from 'minio';
 
 declare global {
-    var minioClient: Minio.Client | undefined;
+    var minioClient: Minio.Client | undefined; //eslint-disable-line
 }
 
 export const minioClient = globalThis.minioClient || new Minio.Client({

@@ -46,7 +46,8 @@ export const getMonologueQuestion = async (topic: string) => {
         input: [
             {
                 role: "system",
-                content: `You will be given a topic and you need to generate a question for a monologue in a friendly and engaging tone. 
+                content: `You will be given a topic and you need to generate a question for a monologue in a friendly and engaging tone.
+                The question should be short and easy to understand.
                 The question should be open-ended and encourage a thoughtful response.
                 The question should be related to the topic and should not be a yes or no question.
                 You will also provide 3 bullet points that are related to the question and the topic in order to help the user to create a monologue.

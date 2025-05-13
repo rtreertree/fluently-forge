@@ -44,6 +44,13 @@ enum SessionType {
 	MONOLOGUE
 }
 
+enum SessionStatus {
+	PENDING
+	ACTIVE
+	COMPLETED
+	CANCELLED
+}
+
 model User {
 	id             String    @id @default(cuid())
 	name           String?
@@ -97,7 +104,7 @@ model sessions {
 	type	  		SessionType 	@map("type")
 	topic     		String     
 	endedAt   		DateTime?		@map("ended_at")
-	ended     		Boolean  		@default(false)
+	status     		SessionStatus  	@default(PENDING) @map("status")
 	token	     	String?
 	question   	 	String?
 	bulletPoints 	String?

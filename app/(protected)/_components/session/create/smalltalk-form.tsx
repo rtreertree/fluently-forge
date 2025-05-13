@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { validateTopic } from "@/actions/openaiHandler";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { ExclamationTriangleIcon, CountdownTimerIcon } from '@radix-ui/react-icons';
 import { createSession } from "@/actions/session";
 import { useSession } from "next-auth/react";
@@ -49,6 +49,7 @@ const SmallTalkForm = () => {
         setChecking(true);
         setError(false);
         const isValid = await validateTopic(values.topic);
+        
         if (isValid) {
             setChecking(false);
             createSession({
