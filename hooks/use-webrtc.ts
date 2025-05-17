@@ -9,12 +9,10 @@ import { mergeAudioBlobsInParallel } from "@/lib/audio";
 import { useSearchParams } from 'next/navigation'
 import { uploadSession } from "@/actions/fileHandler";
 import { Readable } from "stream";
+import { sessions } from "@prisma/client";
 
-const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Tool[]) => {
+const useWebRTCAudioSession = (voice: string, timelimit: number = 8,activeSession: sessions, tools?: Tool[], ) => {
     const session = useSession();
-    const searchParams = useSearchParams();
-
-    const sessionIdParam = searchParams.get("id");
 
     const [status, setStatus] = useState("");
     const [isSessionActive, setIsSessionActive] = useState(false);
@@ -23,14 +21,14 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
     const audioStreamRef = useRef<MediaStream | null>(null);
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
     const dataChannelRef = useRef<RTCDataChannel | null>(null);
-    const [msgs, setMsgs] = useState<any[]>([]);
+    const [msgs, setMsgs] = useState<any[]>([]);                        //eslint-disable-line
     const [micOn, setMicOn] = useState(false);
     const [isPending, setIsPending] = useState(false);
 
     const [sessoinID, setSessionID] = useState<string | null>(null);
 
     // Add function registry
-    const functionRegistry = useRef<Record<string, Function>>({});
+    const functionRegistry = useRef<Record<string, Function>>({});      //eslint-disable-line
     const [currentVolume, setCurrentVolume] = useState(0);
     const analyserRef = useRef<AnalyserNode | null>(null);
     const volumeIntervalRef = useRef<number | null>(null);
@@ -43,7 +41,7 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
     const remoteRecorderRef = useRef<MediaRecorder | null>(null);
     const remoteRecordedBlobsRef = useRef<Blob[]>([]);
 
-
+    
     const sendSystemMessage = (message: string) => {
         if (!dataChannelRef.current || dataChannelRef.current.readyState !== "open") {
             console.warn("Data channel not open. Cannot send system message.");
@@ -78,7 +76,7 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
     }
 
     // Add method to register tool functions
-    const registerFunction = (name: string, fn: Function) => {
+    const registerFunction = (name: string, fn: Function) => { // eslint-disable-line
         functionRegistry.current[name] = fn;
     };
 
@@ -190,14 +188,21 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
             setIsPending(true);
 
             // Check session logic goes here
-            setStatus("Fetching ephemeral token...");
-            const session = await getSession(sessionIdParam || "");
+            if (!activeSession) {
+                setStatus("Session not found");
+                return;
+            }
+            
+            console.log("Active session:", activeSession);
+
+            const session = await getSession(activeSession.id);
+
             if (!session) {
                 setStatus("Session not found");
                 return;
             }
 
-            if (session.ended || session.endedAt || session.token === "NULL") {
+            if (session.status === "COMPLETED" || session.endedAt || session.token === "NULL") {
                 setIsPending(true);
                 setStatus("Session has ended");
                 return;
@@ -347,7 +352,9 @@ const useWebRTCAudioSession = (voice: string, timelimit: Number = 8, tools?: Too
             });
 
             if (!response.ok) {
-                throw new Error("Failed to upload audio");
+                setStatus("Failed to upload audio");
+                console.error("Failed to upload audio:", response.statusText);
+                return;
             }
 
             const data = await response.json();

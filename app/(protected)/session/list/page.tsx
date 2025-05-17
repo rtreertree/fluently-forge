@@ -1,15 +1,12 @@
 "use client";
 
-import SessionCreateCard from "../../_components/session/session-create-card";
+// import { SessionMonologue } from "../../_components/session/monologue/session-monologue";
+import Loader from "@/components/suspend/loading";
+
 
 const SessionListPage = () => {
     return (
-        <div className="flex flex-col md:flex-row items-center justify-center gap-4 p-5 min-h-screen">
-            <SessionCreateCard type={"SMALLTALK"} />
-            <SessionCreateCard type={"SCENARIO_CREATION"} />
-            <SessionCreateCard type={"DICTIONARY"} />
-            <SessionCreateCard type={"MONOLOGUE"} />
-        </div>
+        <Loader text={"loading...."}/>
     );
 };
 

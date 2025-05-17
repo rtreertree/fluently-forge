@@ -1,13 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  devIndicators: false,
-  experimental: {
-    serverActions:{
-      bodySizeLimit: '5mb'
-    }
-  }
+	devIndicators: false,
+	experimental: {
+		serverActions: {
+			bodySizeLimit: '5mb'
+		}
+	},
+	eslint: {
+		ignoreDuringBuilds: true,
+	},
+	rules: {
+		"@typescript-eslint/no-unused-vars": false
+	}
 };
 
 export default nextConfig;

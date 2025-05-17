@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { getMonologueQuestion, validateTopic } from "@/actions/openaiHandler";
 import { useState } from "react";
 import { ExclamationTriangleIcon, CountdownTimerIcon } from '@radix-ui/react-icons';
-import { createMonologueSession, createSession } from "@/actions/session";
+import { createMonologueSession } from "@/actions/session";
 import { useSession } from "next-auth/react";
 import { Separator } from "@/components/ui/separator";
 
@@ -45,11 +45,10 @@ const MonologueForm = () => {
         console.log(values)
         setChecking(true);
         setError(false);
-        const isValid = await validateTopic(values.topic);
+        const isValid = await validateTopic(values.topic, "MONOLOGUE");
         if (isValid) {
-            setChecking(false);
-            // monologue session
             const sessionResponse = await createMonologueSession(values.topic, session.data?.user?.id || "");
+            setChecking(false);
             if (sessionResponse.id) {
                 window.location.href = `/session/active?id=${sessionResponse.id}`;
             }

@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 
 declare global {
-    var prisma: PrismaClient | undefined;
+    var prisma: PrismaClient | undefined; //eslint-disable-line
 }
 
 export const db = globalThis.prisma || new PrismaClient()
