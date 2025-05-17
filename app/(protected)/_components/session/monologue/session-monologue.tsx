@@ -48,6 +48,8 @@ export const SessionMonologue = ({ session }: SessionMonologueProps) => {
                 }
             })();
         }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [audioBlob]);
 
 

@@ -45,7 +45,7 @@ const MonologueForm = () => {
         console.log(values)
         setChecking(true);
         setError(false);
-        const isValid = await validateTopic(values.topic);
+        const isValid = await validateTopic(values.topic, "MONOLOGUE");
         if (isValid) {
             const sessionResponse = await createMonologueSession(values.topic, session.data?.user?.id || "");
             setChecking(false);

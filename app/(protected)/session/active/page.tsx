@@ -89,6 +89,7 @@ export default function ActiveSession() {
         <div className="flex flex-col md:flex-row justify-center gap-4 p-5">
             {activeSession.type === "MONOLOGUE" && <SessionMonologue session={activeSession} />}
             {activeSession.type === "SMALLTALK" && <SessionAgent session={activeSession} />}
+            {activeSession.type === "SCENARIO_CREATION" && <SessionAgent session={activeSession} />}
         </div>
     );
 }
