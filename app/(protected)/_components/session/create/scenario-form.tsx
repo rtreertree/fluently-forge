@@ -10,11 +10,10 @@ import {
     FormLabel,
     FormMessage
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { generateScenarioPrompt, validateTopic } from "@/actions/openaiHandler";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { ExclamationTriangleIcon, CountdownTimerIcon } from '@radix-ui/react-icons';
 import { createSession } from "@/actions/session";
 import { useSession } from "next-auth/react";
