@@ -6,33 +6,22 @@ export const useDailyStreak = () => {
     const [hasIncrementedToday, setHasIncrementedToday] = useState(false);
 
     useEffect(() => {
-        const savedStreak = localStorage.getItem("dailyStreak");
-        const savedWeekProgress = localStorage.getItem("weekProgress");
-        const savedDay = localStorage.getItem("currentDay");
-
-        if (savedStreak) {
-            setStreak(parseInt(savedStreak, 10));
-        }
-
-        if (savedWeekProgress) {
-            setWeekProgress(JSON.parse(savedWeekProgress));
-        }
-
-        if (savedDay) {
-            const lastSavedDay = parseInt(savedDay, 10);
-            if (lastSavedDay !== new Date().getDay()) {
-                if (new Date().getDay() === 0) {
-                    setWeekProgress(Array(7).fill(false));
+        fetch("/api/daily-streak")
+            .then(res => res.json())
+            .then(data => {
+                if (data) {
+                    setStreak(data.streak || 0);
+                    setWeekProgress(data.weekProgress || Array(7).fill(false));
                 }
-                setHasIncrementedToday(false);
-            }
-        }
+            });
     }, []);
 
     useEffect(() => {
-        localStorage.setItem("dailyStreak", streak.toString());
-        localStorage.setItem("weekProgress", JSON.stringify(weekProgress));
-        localStorage.setItem("currentDay", new Date().getDay().toString());
+        fetch("/api/daily-streak", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ streak, weekProgress }),
+        });
     }, [streak, weekProgress]);
 
     const handleIncrementStreak = () => {

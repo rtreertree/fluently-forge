@@ -1,7 +1,12 @@
 import { isUserInSession } from "@/actions/session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { SessionType } from "@prisma/client";
+export enum SessionType {
+    SMALLTALK = "SMALLTALK",
+    SCENARIO_CREATION = "SCENARIO_CREATION",
+    DICTIONARY = "DICTIONARY",
+    MONOLOGUE = "MONOLOGUE",
+}
 import { useSession } from "next-auth/react";
 import {
     Dialog,

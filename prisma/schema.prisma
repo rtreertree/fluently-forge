@@ -1,113 +1,112 @@
 // prisma/schema.prisma
 datasource db {
-  	provider    = "postgresql"
-  	url  	    = env("DATABASE_URL")
-  	directUrl   = env("DATABASE_URL_UNPOOLED")
+    provider  = "postgresql"
+    url       = env("DATABASE_URL")
+    directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 generator client {
-	provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 enum UserRole {
-	ADMIN
-	USER
+    ADMIN
+    USER
 }
 
 enum EnglishLevel {
-  	A1
-  	A2
-  	B1
- 	B2
-  	C1
-  	C2
+    A1
+    A2
+    B1
+    B2
+    C1
+    C2
 }
 
 enum LogType {
-	USER_CREATED
-	USER_UPDATED
-	USER_DELETED
-	ACCOUNT_LINKED
-	ACCOUNT_UNLINKED
-	LOGIN
-	LOGOUT
-	PROFILE_UPDATED
-	EMAIL_VERIFIED
-	GET_PROFILE
-	SESSION
+    USER_CREATED
+    USER_UPDATED
+    USER_DELETED
+    ACCOUNT_LINKED
+    ACCOUNT_UNLINKED
+    LOGIN
+    LOGOUT
+    PROFILE_UPDATED
+    EMAIL_VERIFIED
+    GET_PROFILE
+    SESSION
 }
 
 enum SessionType {
-	SMALLTALK
-	SCENARIO_CREATION
-	DICTIONARY
-	MONOLOGUE
+    SMALLTALK
+    SCENARIO_CREATION
+    DICTIONARY
+    MONOLOGUE
 }
 
 enum SessionStatus {
-	PENDING
-	ACTIVE
-	COMPLETED
-	CANCELLED
+    PENDING
+    ACTIVE
+    COMPLETED
+    CANCELLED
 }
 
 model User {
-	id             String    @id @default(cuid())
-	name           String?
-	email          String?   @unique
-	emailVerified  DateTime? @map("email_verified")
-	image          String?
-	password   	   String?
-	role 		   UserRole  @default(USER)
-	accounts       Account[]
+    id            String    @id @default(cuid())
+    name          String?
+    email         String?   @unique
+    emailVerified DateTime? @map("email_verified")
+    image         String?
+    password      String?
+    role          UserRole  @default(USER)
+    accounts      Account[]
+    streak        DateTime  @default(now())
+    englishLevel EnglishLevel @default(B1)
 
-	englishLevel   EnglishLevel @default(B1)
-
-
-	@@map("users")
+    @@map("users")
 }
 
 model Account {
-	id                 String  @id @default(cuid())
-	userId             String  @map("user_id")
-	type               String
-	provider           String
-	providerAccountId  String  @map("provider_account_id")
-	refresh_token      String? @db.Text
-	access_token       String? @db.Text
-	expires_at         Int?
-	token_type         String?
-	scope              String?
-	id_token           String? @db.Text
-	session_state      String?
-	
-	user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-	
-	@@unique([provider, providerAccountId])
-	@@map("accounts")
+    id                String  @id @default(cuid())
+    userId            String  @map("user_id")
+    type              String
+    provider          String
+    providerAccountId String  @map("provider_account_id")
+    refresh_token     String? @db.Text
+    access_token      String? @db.Text
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String? @db.Text
+    session_state     String?
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+    @@map("accounts")
 }
 
 model logs {
-	id        String   @id @default(cuid())
-	userId    String?  @map("user_id")
-	type      LogType  @map("type")
-	action    String
-	createdAt DateTime @default(now()) @map("created_at")
+    id        String   @id @default(cuid())
+    userId    String?  @map("user_id")
+    type      LogType  @map("type")
+    action    String
+    createdAt DateTime @default(now()) @map("created_at")
 
-	@@map("logs")
+    @@map("logs")
 }
 
 model sessions {
-	id        		String   	  	@id @default(cuid())
-	userId    		String  	  	@map("user_id")
-	createdAt 		DateTime 	  	@default(now()) @map("created_at")
-	type	  		SessionType 	@map("type")
-	topic     		String     
-	endedAt   		DateTime?		@map("ended_at")
-	status     		SessionStatus  	@default(PENDING) @map("status")
-	token	     	String?
-	question   	 	String?
-	bulletPoints 	String?
+    id           String        @id @default(cuid())
+    userId       String        @map("user_id")
+    createdAt    DateTime      @default(now()) @map("created_at")
+    type         SessionType   @map("type")
+    topic        String
+    endedAt      DateTime?     @map("ended_at")
+    status       SessionStatus @default(PENDING) @map("status")
+    token        String?
+    question     String?
+    bulletPoints String?
 
-	@@map("sessions")
+    @@map("sessions")
 }
