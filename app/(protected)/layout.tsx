@@ -5,7 +5,7 @@ import { cookies } from "next/headers"
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@/auth";
 import { AppSidebar } from "./_components/sidebar";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarBreadcrumb } from "./_components/sidebar-breadcrumb";
 
 

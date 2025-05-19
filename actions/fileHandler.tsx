@@ -12,12 +12,12 @@ export interface SessionUploadInterface {
 };
 
 
-export async function uploadFile (fileBuffer: Buffer<any>, fileName: string, bucketName: string) {
+export async function uploadFile (fileBuffer: Buffer<any>, fileName: string) {
     if (!minioClient) throw new Error("Minio client is not initialized");
     if (!(await minioClient.bucketExists(BUCKET_NAME))) await minioClient.makeBucket(BUCKET_NAME, "us-east-1");
 
     await minioClient.putObject(
-        bucketName,
+        BUCKET_NAME,
         fileName,
         fileBuffer,
         fileBuffer.length,
@@ -36,9 +36,9 @@ export async function uploadSession(sessionUpload: SessionUploadInterface) {
 
     // Upload the files promised all
     const uploadPromises = [
-        uploadFile(sessionUpload.agentAudio, `${sessionUpload.sessionId}/agent.wav`, "test"),
-        uploadFile(sessionUpload.userAudio, `${sessionUpload.sessionId}/user.wav`, "test"),
-        uploadFile(sessionUpload.mergedAudio, `${sessionUpload.sessionId}/merged.wav`, "test"),
+        uploadFile(sessionUpload.agentAudio, `${sessionUpload.sessionId}/agent.wav`),
+        uploadFile(sessionUpload.userAudio, `${sessionUpload.sessionId}/user.wav`),
+        uploadFile(sessionUpload.mergedAudio, `${sessionUpload.sessionId}/merged.wav`),
     ];
 
     await Promise.all(uploadPromises);

@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import { Home, Calendar, PencilLine } from "lucide-react";
+import { Home, Calendar, PencilLine, List } from "lucide-react";
 import {
     Sidebar,
     SidebarContent,
@@ -28,6 +28,7 @@ export const AppSidebar = () => {
         { title: "Home", url: "/home", icon: Home },
         { title: "Daily Streak", url: "/daily-streak", icon: Calendar },
         { title: "Create session", url: "/session/create", icon: PencilLine },
+        { title: "Session list", url: "/session/list", icon: List },
     ];
 
     const pathname = usePathname();

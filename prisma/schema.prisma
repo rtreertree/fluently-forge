@@ -37,6 +37,20 @@ enum LogType {
 	SESSION
 }
 
+enum SessionType {
+	SMALLTALK
+	SCENARIO_CREATION
+	DICTIONARY
+	MONOLOGUE
+}
+
+enum SessionStatus {
+	PENDING
+	ACTIVE
+	COMPLETED
+	CANCELLED
+}
+
 model User {
 	id             String    @id @default(cuid())
 	name           String?
@@ -84,13 +98,16 @@ model logs {
 }
 
 model sessions {
-	id        String   @id @default(cuid())
-	userId    String  @map("user_id")
-	createdAt DateTime @default(now()) @map("created_at")
-	topic     String?
-	endedAt   DateTime? @map("ended_at")
-	ended     Boolean  @default(false)
-	token	  String
+	id        		String   	  	@id @default(cuid())
+	userId    		String  	  	@map("user_id")
+	createdAt 		DateTime 	  	@default(now()) @map("created_at")
+	type	  		SessionType 	@map("type")
+	topic     		String     
+	endedAt   		DateTime?		@map("ended_at")
+	status     		SessionStatus  	@default(PENDING) @map("status")
+	token	     	String?
+	question   	 	String?
+	bulletPoints 	String?
 
 	@@map("sessions")
 }

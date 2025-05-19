@@ -1,30 +1,31 @@
 "use client";
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Mic, MicOff } from 'lucide-react';
-import useWebRTCAudioSession from '@/hooks/use-webrtc';
-import { Button } from '@/components/ui/button';
 
-const SessionAgent: React.FC = () => {
-    const { currentVolume, isSessionActive, micOn, isPending, status,handleStartStopClick, stopSession, setMicOnOff, sendSystemMessage} = useWebRTCAudioSession('alloy');
-    const [bars, setBars] = useState(Array(50).fill(0));
+import React from "react";
+import { Mic, MicOff } from "lucide-react";
+import useWebRTCAudioSession from "@/hooks/use-webrtc";
+import { Button } from "@/components/ui/button";
+import RadialVolumeBars from "./session-radialbars";
+import { sessions } from "@prisma/client";
 
-    useEffect(() => {
-        if (isSessionActive) {
-            updateBars(currentVolume);
-        } else {
-            resetBars();
-        }
-    }, [currentVolume, isSessionActive]);
+// Constants for bar config
+const SVG_SIZE = 300;
 
-    const updateBars = (volume: number) => {
-        setBars(bars.map(() => Math.random() * volume * 50));
-    };
+interface SessionAgentProps {
+    session: sessions
+}
 
-    const resetBars = () => {
-        setBars(Array(50).fill(0));
-    };
-    
+const SessionAgent = ({ session }: SessionAgentProps) => {
+    const {
+        currentVolume,
+        isSessionActive,
+        micOn,
+        isPending,
+        status,
+        handleStartStopClick,
+        stopSession,
+        setMicOnOff,
+    } = useWebRTCAudioSession("alloy", undefined, session);
+
     const micOnClick = () => {
         if (!isSessionActive) return;
         setMicOnOff(!micOn);
@@ -38,66 +39,39 @@ const SessionAgent: React.FC = () => {
         }
     };
 
-    const sendSystemMessageClick = () => {
-        sendSystemMessage('End this conversation smoothly');
-    };
-
+    
     return (
-        <>
-            <div className='border text-center justify-items-center p-4 rounded-2xl'>
-                <h1 className='text-2xl font-bold mb-4 pt-2'>{status}</h1>
-                <div className="flex items-center justify-center h-full relative" style={{ width: '300px', height: '300px' }}>
-                    {micOn && !isPending ?
-                        <Mic
-                            size={28}
-                            className="text-black dark:text-white"
-                            onClick={micOnClick}
-                            style={{ cursor: 'pointer', zIndex: 10 }}
-                        />
-                        :
-                        <MicOff
-                            size={28}
-                            className="text-black dark:text-white"
-                            onClick={micOnClick}
-                            style={{ cursor: 'pointer', zIndex: 10 }}
-                        />
+        <div className="border text-center justify-items-center p-4 rounded-2xl">
+            <h1 className="text-2xl font-bold mb-4 pt-2">{status}</h1>
+            <div
+                className="flex items-center justify-center h-full relative"
+                style={{ width: `${SVG_SIZE}px`, height: `${SVG_SIZE}px` }}
+            >
+                <button
+                    type="button"
+                    aria-label={
+                        micOn && !isPending ? "Mute microphone" : "Unmute microphone"
                     }
-                    <svg width="100%" height="100%" viewBox="0 0 300 300" style={{ position: 'absolute', top: 0, left: 0 }}>
-                        {bars.map((height, index) => {
-                            const angle = (index / bars.length) * 360;
-                            const radians = (angle * Math.PI) / 180;
-                            const x1 = 150 + Math.cos(radians) * 50;
-                            const y1 = 150 + Math.sin(radians) * 50;
-                            const x2 = 150 + Math.cos(radians) * (100 + height);
-                            const y2 = 150 + Math.sin(radians) * (100 + height);
-
-                            return (
-                                <motion.line
-                                    key={index}
-                                    x1={x1}
-                                    y1={y1}
-                                    x2={x2}
-                                    y2={y2}
-                                    className="stroke-current text-black dark:text-white dark:opacity-70 opacity-70"
-                                    strokeWidth="2"
-                                    initial={{ x2: x1, y2: y1 }}
-                                    animate={{ x2, y2 }}
-                                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                                />
-                            );
-                        })}
-                    </svg>
-                    <span className="absolute top-48 w-[calc(100%-70%)] h-[calc(100%-70%)] bg-primary-foreground dark:bg-primary blur-[120px]"></span>
-                </div>
-                <Button onClick={handleButtonClick} disabled={isPending}>
-                    {isSessionActive ? 'Stop Session' : 'Start'}
-                </Button>
-                {/* <Button onClick={sendSystemMessageClick}>
-                    Send System Message
-                </Button> */}
-
+                    onClick={micOnClick}
+                    disabled={!isSessionActive}
+                    className="z-10 absolute"
+                    style={{ background: "transparent", border: "none" }}
+                >
+                    {micOn && !isPending ? (
+                        <Mic size={28} className="text-black dark:text-white" />
+                    ) : (
+                        <MicOff size={28} className="text-black dark:text-white" />
+                    )}
+                </button>
+                {/* Radial Bars visualization */}
+                <RadialVolumeBars volume={currentVolume} isActive={isSessionActive} />
+                {/* Soft blur "glow" in the middle */}
+                <span className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] bg-primary-foreground dark:bg-primary blur-[120px]" />
             </div>
-        </>
+            <Button onClick={handleButtonClick} disabled={isPending} className="mt-4">
+                {isSessionActive ? "Stop Session" : "Start"}
+            </Button>
+        </div>
     );
 };
 

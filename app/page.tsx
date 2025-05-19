@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { LoginButton } from "@/components/auth/login-button";
+import { Switch } from "@/components/ui/switch";
 
 export default function Home() {
   	return (
@@ -10,6 +11,7 @@ export default function Home() {
 				<LoginButton>
 					<Button className="space-y-20" size="lg">Sign In</Button>
 				</LoginButton>
+				<Switch />
 			</div>
 		</main>
   	);

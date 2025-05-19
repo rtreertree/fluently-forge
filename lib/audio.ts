@@ -1,3 +1,8 @@
+declare global {
+    interface Window {
+        webkitAudioContext: typeof AudioContext
+    }
+}
 export async function mergeAudioBlobsInParallel(
     blobs: Blob[]
 ): Promise<Blob | null> {

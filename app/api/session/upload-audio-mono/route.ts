@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadSession } from '@/actions/fileHandler';
+import { uploadFile, uploadSession } from '@/actions/fileHandler';
 import { db } from '@/lib/db';
 
 
@@ -31,22 +31,13 @@ export async function POST(req: NextRequest) {
         const formData = await req.formData();
 
         const userAudio = formData.get('user-audio') as File;
-        const agentAudio = formData.get('agent-audio') as File;
-        const mixedAudio = formData.get('mixed-audio') as File;
 
-        if (!userAudio || !agentAudio || !mixedAudio) {
+        if (!userAudio) {
             return NextResponse.json({ error: 'Missing audio files' }, { status: 400 });
         }
 
         // Save the files to the server
-        await uploadSession({
-            userId: formData.get('user-id') as string,
-            sessionId: formData.get('session-id') as string,
-            agentAudio: Buffer.from(await agentAudio.arrayBuffer()),
-            userAudio: Buffer.from(await userAudio.arrayBuffer()),
-            mergedAudio: Buffer.from(await mixedAudio.arrayBuffer()),
-        })
-
+        await uploadFile(Buffer.from(await userAudio.arrayBuffer()), `${formData.get('session-id')}/user.wav`);
         return NextResponse.json({ success: true }, { status: 200 });
     } catch (err) {
         console.error(err);
