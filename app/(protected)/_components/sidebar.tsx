@@ -25,7 +25,7 @@ type SidebarItem = {
 
 export const AppSidebar = () => {
     const items: SidebarItem[] = [
-        { title: "Home", url: "/home", icon: Home },
+        // { title: "Home", url: "/home", icon: Home },
         { title: "Daily Streak", url: "/daily-streak", icon: Calendar },
         { title: "Create session", url: "/session/create", icon: PencilLine },
         { title: "Session list", url: "/session/list", icon: List },

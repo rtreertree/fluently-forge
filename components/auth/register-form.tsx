@@ -16,8 +16,11 @@ import { Button } from '@/components/ui/button';
 import { FormError } from '@/components/form-error';
 import { FormSuccess } from '@/components/form-success';
 import { register } from '@/actions/register';
+import { useRouter } from 'next/navigation';
 
 export const RegisterForm = () => {
+    const router = useRouter();
+
     const [error, setError] = useState<string | undefined>("");
     const [success, setSuccess] = useState<string | undefined>("");
     const [isPending, startTransition] = useTransition();
@@ -38,6 +41,9 @@ export const RegisterForm = () => {
                 .then((data) => {
                     setError(data.error);
                     setSuccess(data.success);
+                    if (data.success) {
+                        router.push("/auth/login");
+                    }
                 });
         });
     };
