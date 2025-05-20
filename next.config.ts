@@ -9,9 +9,6 @@ const nextConfig: NextConfig = {
 	},
 	eslint: {
 		ignoreDuringBuilds: true,
-	},
-	rules: {
-		"@typescript-eslint/no-unused-vars": false
 	}
 };
 

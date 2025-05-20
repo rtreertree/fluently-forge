@@ -2,16 +2,21 @@
 
 import { minioClient, BUCKET_NAME} from "@/lib/files";
 
+
 export interface SessionUploadInterface {
     userId: string;
     sessionId: string;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     agentAudio: Buffer<any>;
-    userAudio: Buffer<any>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    userAudio: Buffer<any>;     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mergedAudio: Buffer<any>;
+
 };
 
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function uploadFile (fileBuffer: Buffer<any>, fileName: string) {
     if (!minioClient) throw new Error("Minio client is not initialized");
     if (!(await minioClient.bucketExists(BUCKET_NAME))) await minioClient.makeBucket(BUCKET_NAME, "us-east-1");
