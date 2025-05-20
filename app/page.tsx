@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { LoginButton } from "@/components/auth/login-button";
 import { Switch } from "@/components/ui/switch";
+import { Anvil } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -11,9 +12,9 @@ export default function Home() {
 	return (
 		<div className="min-h-screen flex flex-col bg-gradient-to-br from-white via-gray-100 to-gray-200 relative">
 			{/* Header */}
-			<header className="w-full flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white/95 backdrop-blur fixed top-0 left-10 z-1 shadow-md pointer-events-auto">
+			<header className="w-full flex items-center justify-between px-6 py-4 rounded-lg border-b border-gray-200 bg-white/95 backdrop-blur fixed top-0 left-10 z-1 shadow-md pointer-events-auto">
 				<div className="flex items-center gap-2">
-					<img src="/logo.png" alt="Logo" className="w-10 h-10 drop-shadow" />
+					{/* <Anvil size={50}/> */}
 					<span className="text-2xl font-extrabold text-black tracking-tight">English Learning AI</span>
 				</div>
 			</header>
@@ -22,15 +23,15 @@ export default function Home() {
 			<main className="flex-1 flex flex-col items-center px-4 pt-28 pb-20 overflow-y-auto">
 				{/* Hero Section */}
 				<section className="flex flex-col items-center py-10">
-					<img src="/logo.png" alt="Logo" className="w-28 h-28 mb-4 drop-shadow-lg" />
-					<h1 className="text-4xl font-extrabold text-center mb-4 text-black drop-shadow">
+					<Anvil size={120}/>
+					<h1 className="text-4xl font-extrabold text-center mb-4 text-black drop-shadow pt-12">
 						Start learning English like a pro with an AI that adapts to your needs!
 					</h1>
 					<div className="flex gap-4 mb-8">
-						<button onClick={() => router.push("/auth/login")} className="px-8 py-3 bg-gradient-to-r from-black to-gray-700 text-white rounded-lg shadow-lg hover:scale-105 hover:from-gray-900 hover:to-black transition-all font-bold text-lg border border-gray-700">
+						<button onClick={() => router.push("/auth/register")} className="px-8 py-3 bg-gradient-to-r from-black to-gray-700 text-white rounded-lg shadow-lg hover:scale-105 hover:from-gray-900 hover:to-black transition-all font-bold text-lg border border-gray-700">
 							Sign Up
 						</button>
-						<button className="px-8 py-3 bg-white border border-gray-400 text-black rounded-lg shadow hover:bg-gray-100 hover:scale-105 transition-all font-bold text-lg">
+						<button onClick={() => router.push("/auth/login")} className="px-8 py-3 bg-white border border-gray-400 text-black rounded-lg shadow hover:bg-gray-100 hover:scale-105 transition-all font-bold text-lg">
 							Log In
 						</button>
 					</div>

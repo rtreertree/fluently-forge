@@ -6,6 +6,7 @@ import useWebRTCAudioSession from "@/hooks/use-webrtc";
 import { Button } from "@/components/ui/button";
 import RadialVolumeBars from "./session-radialbars";
 import { sessions } from "@prisma/client";
+import { useRouter } from "next/navigation";
 
 // Constants for bar config
 const SVG_SIZE = 300;
@@ -15,6 +16,8 @@ interface SessionAgentProps {
 }
 
 const SessionAgent = ({ session }: SessionAgentProps) => {
+    const router = useRouter();
+
     const {
         currentVolume,
         isSessionActive,
@@ -33,7 +36,9 @@ const SessionAgent = ({ session }: SessionAgentProps) => {
 
     const handleButtonClick = () => {
         if (isSessionActive) {
-            stopSession();
+            stopSession().then(() => {
+                router.push("/session/list");
+            });
         } else {
             handleStartStopClick();
         }
