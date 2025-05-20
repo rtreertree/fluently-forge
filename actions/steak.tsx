@@ -1,10 +1,18 @@
 "use server";
 import { db } from "@/lib/db";
+import { time } from "console";
+import { date } from "zod";
 export interface DailyStreak {
     streak: number;
 }
 
 export const getDailyStreak = async (userId: string) => {
+    // Fetch user's current streak start date
+    const user = await db.user.findUnique({
+        where: { id: userId },
+        select: { streak: true },
+    });
+
     // Get all sessions for the user, sorted by date ascending
     const sessions = await db.sessions.findMany({
         where: { userId },
@@ -38,26 +46,54 @@ export const getDailyStreak = async (userId: string) => {
 
     // Sort chronologically
     uniqueDates.sort((a, b) => a.getTime() - b.getTime());
-
     console.log(uniqueDates)
-
-    // Check for missing days (break in streak)
-    for (let i = 1; i < uniqueDates.length; i++) {
-        const prev = uniqueDates[i - 1];
-        const curr = uniqueDates[i];
-        const diff = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
-        if (diff > 1) {
-            // Streak broken
+    // If user's streak is before the first activity, update it
+    if (user?.streak) {
+        const streakStart = new Date(user.streak);
+        streakStart.setUTCHours(0, 0, 0, 0);
+        if (streakStart.getTime() < uniqueDates[0].getTime()) {
+            // Update streak to first activity date (or today, as you wish)
             await db.user.update({
                 where: { id: userId },
-                data: { streak: new Date() }, // reset streak
+                data: { streak: new Date() }, // set to today
             });
             return 0;
         }
     }
 
-    // All dates are consecutive
-    return uniqueDates.length;
+    // Filter out dates before the user's streak start date
+    let filteredDates = uniqueDates;
+    if (user?.streak) {
+        const streakStart = new Date(user.streak);
+        streakStart.setUTCHours(0, 0, 0, 0);
+        filteredDates = uniqueDates.filter(
+            (date) => date.getTime() >= streakStart.getTime()
+        );
+        // Add the streak start date if not present
+        if (!filteredDates.some(date => date.getTime() === streakStart.getTime())) {
+            filteredDates.unshift(streakStart);
+        }
+        // Sort again to ensure order
+        filteredDates.sort((a, b) => a.getTime() - b.getTime());
+    }
+
+    // Check for missing days (break in streak)
+    for (let i = 1; i < filteredDates.length; i++) {
+        const prev = filteredDates[i - 1];
+        const curr = filteredDates[i];
+        const diff = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
+        if (diff > 1) {
+            // Streak broken, update streak to latest activity date
+            await db.user.update({
+                where: { id: userId },
+                data: { streak: curr }, // set to latest activity date
+            });
+            return 0;
+        }
+    }
+
+    // All dates are consecutive from streak start
+    return filteredDates.length;
 };
 
 export const getWeeklyProgress = async (userId: string) => {

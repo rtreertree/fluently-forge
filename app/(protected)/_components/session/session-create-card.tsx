@@ -1,24 +1,19 @@
-import { isUserInSession } from "@/actions/session";
+import { createSession, isUserInSession } from "@/actions/session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-export enum SessionType {
-    SMALLTALK = "SMALLTALK",
-    SCENARIO_CREATION = "SCENARIO_CREATION",
-    DICTIONARY = "DICTIONARY",
-    MONOLOGUE = "MONOLOGUE",
-}
+import { SessionType } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import {
     Dialog,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
 import SmallTalkForm from "./create/smalltalk-form";
 import MonologueForm from "./create/monologue-form";
-import ScenarioForm from "./create/scenario-form";
 
 interface SessionCreateCardProps {
     type: SessionType;
@@ -35,6 +30,15 @@ const SessionCreateCard: React.FC<SessionCreateCardProps> = ({ type }: SessionCr
     const session = useSession();
     const sessionDescription = items.find((item) => item.type === type) as { name: string; description: string; link: string; type: SessionType };
 
+    const ButtonClick = async () => {
+        const isSessionExists = await isUserInSession(session.data?.user.id as string);
+        if (isSessionExists) {
+            alert("You already have an active session. Please end it before starting a new one.");
+            return;
+        };
+
+    };
+
 
     return (
         <>
@@ -48,8 +52,8 @@ const SessionCreateCard: React.FC<SessionCreateCardProps> = ({ type }: SessionCr
                     </DialogHeader>
                     {sessionDescription.type === SessionType.MONOLOGUE && (<MonologueForm />)}
                     {sessionDescription.type === SessionType.SMALLTALK && (<SmallTalkForm />)}
-                    {sessionDescription.type === SessionType.DICTIONARY && (<p> NOT IMPLEMENT</p>)}
-                    {sessionDescription.type === SessionType.SCENARIO_CREATION && (<ScenarioForm />)}
+                    {sessionDescription.type === SessionType.DICTIONARY && (<p>Dictionary</p>)}
+                    {sessionDescription.type === SessionType.SCENARIO_CREATION && (<p>Scenario Creation</p>)}
                 </DialogContent>
 
                 <Card className="w-[300px] h-[400px] shadow-lg rounded-lg flex flex-col">
@@ -67,7 +71,7 @@ const SessionCreateCard: React.FC<SessionCreateCardProps> = ({ type }: SessionCr
                     </CardContent>
                     <CardFooter className="flex justify-center items-center p-4">
                         <DialogTrigger asChild>
-                            <Button className="w-full">
+                            <Button className="w-full" onClick={ButtonClick}>
                                 Start a Session
                             </Button>
                         </DialogTrigger>
