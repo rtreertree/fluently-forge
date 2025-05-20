@@ -5,11 +5,12 @@ declare global {
 }
 
 export const minioClient = globalThis.minioClient || new Minio.Client({
-    endPoint: process.env.MINIO_ENDPOINT || 'localhost',
+    endPoint: 'minio',
+    // endPoint: process.env.MINIO_ENDPOINT || 'minio',
     port: parseInt(process.env.MINIO_PORT || '9000'),
-    useSSL: process.env.MINIO_USE_SSL === 'true',
-    accessKey: process.env.MINIO_ACCESS_KEY || '',
-    secretKey: process.env.MINIO_SECRET_KEY || '',
+    useSSL: process.env.MINIO_USE_SSL === 'false',
+    accessKey: process.env.MINIO_ROOT_USER || '',
+    secretKey: process.env.MINIO_ROOT_PASSWORD || '',
 });
 
 export const BUCKET_NAME = process.env.MINIO_BUCKET_NAME || 'test';

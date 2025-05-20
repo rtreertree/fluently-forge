@@ -1,5 +1,5 @@
 # Stage 1: Install dependencies and build the app
-FROM node:18-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -20,10 +20,11 @@ RUN npm run build
 RUN npm prune --production
 
 # Stage 2: Create minimal production image
-FROM node:18-alpine AS runner
+FROM node:24-alpine AS runner
 
 # Set environment variables
 ENV NODE_ENV=production
+
 
 # Create app directory
 WORKDIR /app
@@ -38,4 +39,4 @@ COPY --from=builder /app/package.json ./package.json
 EXPOSE 3000
 
 # Start the app
-CMD ["npm", "start"]
+CMD ["npm", "start", "--trace-warnings"]
