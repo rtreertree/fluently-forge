@@ -1,44 +1,50 @@
-"use client";
+'use client';
+
 import { isUserInSession } from "@/actions/session";
 import Loader from "@/components/suspend/loading";
-import { SessionProvider, useSession } from "next-auth/react";
-import { useRouter, usePathname} from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
-export default async function RootLayout({
+export default function RootLayout({
 	children,
-}: Readonly<{
+}: {
 	children: React.ReactNode;
-}>) {
-	const [isLoading, setIsLoading] = useState(true);
-
-	const session = await useSession();
-	const user = session.data?.user;
+}) {
+	const { data: session, status } = useSession();
 	const router = useRouter();
 	const pathname = usePathname();
-
-	if (!user) {
-		router.push("/auth/login");
-		return null;
-	}
+	const [isLoading, setIsLoading] = useState(true);
 
 	useEffect(() => {
-		// check route if not /active"
-		if (pathname === "/active") {
-			setIsLoading(false);
-			return;
-		}
+		const checkSession = async () => {
+			if (status === "loading") return; // wait for session to load
 
-		isUserInSession(user.id || "").then((activeSession) => {
-			if (activeSession) {
-				router.push(`/session/active/${activeSession.id}`);
+			if (!session?.user) {
+				router.push("/auth/login");
+				return;
+			}
+
+			console.log("pathname", pathname);
+
+			if (pathname !== "/session/active") {
+				const activeSession = await isUserInSession(session.user.id || "");
+				if (activeSession) {
+					router.push(`/session/active?id=${activeSession.id}`);
+				} else {
+					setIsLoading(false);
+				}
 			} else {
 				setIsLoading(false);
 			}
-		});
-	}, []);
+		};
 
-	return (
-		!isLoading ? {children} : <Loader text="loading"/>
-	);
+		checkSession();
+	}, [session, status, pathname, router]);
+
+	if (isLoading || status === "loading") {
+		return <Loader text="Loading..." />;
+	}
+
+	return <>{children}</>;
 }

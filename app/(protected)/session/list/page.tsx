@@ -6,7 +6,7 @@ import Loader from "@/components/suspend/loading";
 
 const SessionListPage = () => {
     return (
-        <Loader text={"loading...."}/>
+        <Loader text={"NOT IMPLEMENT ...."}/>
     );
 };
 
