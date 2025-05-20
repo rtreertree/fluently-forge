@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import SmallTalkForm from "./create/smalltalk-form";
 import MonologueForm from "./create/monologue-form";
+import ScenarioForm from "./create/scenario-form";
 
 interface SessionCreateCardProps {
     type: SessionType;
@@ -53,7 +54,7 @@ const SessionCreateCard: React.FC<SessionCreateCardProps> = ({ type }: SessionCr
                     {sessionDescription.type === SessionType.MONOLOGUE && (<MonologueForm />)}
                     {sessionDescription.type === SessionType.SMALLTALK && (<SmallTalkForm />)}
                     {sessionDescription.type === SessionType.DICTIONARY && (<p>Dictionary</p>)}
-                    {sessionDescription.type === SessionType.SCENARIO_CREATION && (<p>Scenario Creation</p>)}
+                    {sessionDescription.type === SessionType.SCENARIO_CREATION && (<ScenarioForm />)}
                 </DialogContent>
 
                 <Card className="w-[300px] h-[400px] shadow-lg rounded-lg flex flex-col">

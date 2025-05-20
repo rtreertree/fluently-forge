@@ -152,7 +152,7 @@ export const isUserInSession = async (userId: string) => {
         }),
     ]);
 
-    return Boolean(activeSession);
+    return activeSession;
 };
 
 export const endSession = async (sessionId: string) => {
