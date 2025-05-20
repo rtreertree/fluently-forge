@@ -99,7 +99,8 @@ export const getMonologueQuestion = async (topic: string) => {
                 The question should be short and easy to understand.
                 The question should be open-ended and encourage a thoughtful response.
                 The question should be related to the topic and should not be a yes or no question.
-                You will also provide 3 bullet points that are related to the question and the topic in order to help the user to create a monologue.
+                You will also provide 3 bullet points that are related to the question and linked to each other, make it shortest as possible, consise as questions for those bullet points.
+                Do not ask in-depth questions, just ask a question that is related to the topic.
                 The question should be in the format of a question and the bullet points should be in the format of a list.`
             },
             {

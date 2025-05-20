@@ -91,7 +91,6 @@ const orbitDotStyle = {
 
 const loadingTextStyle = {
     color: "#444",
-    letterSpacing: "0.2em",
     fontSize: 17,
     fontWeight: 400
 };
