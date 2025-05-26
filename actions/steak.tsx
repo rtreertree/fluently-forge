@@ -46,7 +46,7 @@ export const getDailyStreak = async (userId: string) => {
 
     // Sort chronologically
     uniqueDates.sort((a, b) => a.getTime() - b.getTime());
-    console.log(uniqueDates)
+    // console.log(uniqueDates)
     // If user's streak is before the first activity, update it
     if (user?.streak) {
         const streakStart = new Date(user.streak);
@@ -98,48 +98,61 @@ export const getDailyStreak = async (userId: string) => {
 
 export const getWeeklyProgress = async (userId: string) => {
     const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 60 * 60 * 24 * 7 * 1000);
+    // Find this week's Monday
+    const monday = new Date(now);
+    const day = monday.getDay();
+    const diff = (day === 0 ? -6 : 1) - day; // if Sunday, go back 6 days, else to Monday
+    monday.setDate(monday.getDate() + diff);
+    monday.setHours(0, 0, 0, 0);
+
+    // Build week: Monday to Sunday (all in ICT)
+    const weekDays: Date[] = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        // Convert to ICT and normalize to 00:00
+        const ict = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+        ict.setUTCHours(0, 0, 0, 0);
+        weekDays.push(ict);
+    }
+
+    // Get all sessions for this week
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
     const weeklySessions = await db.sessions.findMany({
         where: {
             userId: userId,
             createdAt: {
-                gte: sevenDaysAgo,
+                gte: monday,
+                lte: sunday,
             },
         },
+        select: { createdAt: true },
     });
 
-    const daysOfWeek = [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-    ];
-    const weekProgress: { [key: string]: boolean } = {
-        Sunday: false,
-        Monday: false,
-        Tuesday: false,
-        Wednesday: false,
-        Thursday: false,
-        Friday: false,
-        Saturday: false,
-    };
-
-    weeklySessions.forEach((session) => {
-        const day = daysOfWeek[new Date(session.createdAt).getDay()];
-        weekProgress[day] = true;
-    });
-
-    // If today is Sunday, reset all except Sunday to false
-    if (now.getDay() === 0) {
-        Object.keys(weekProgress).forEach((day) => {
-            if (day !== "Sunday") {
-                weekProgress[day] = false;
+    // Normalize session dates to start of ICT day (UTC+7)
+    const sessionDays = new Set(
+        weeklySessions.map((s) => {
+            const utc = new Date(s.createdAt);
+            let ict = new Date(utc.getTime() + 7 * 60 * 60 * 1000);
+            if (ict.getUTCHours() >= 24) {
+                ict.setUTCDate(ict.getUTCDate() + 1);
+                ict.setUTCHours(0, 0, 0, 0);
+            } else {
+                ict.setUTCHours(0, 0, 0, 0);
             }
-        });
-    }
+            // Use YYYY-MM-DD string for comparison
+            return ict.toISOString().slice(0, 10);
+        })
+    );
+
+    // Build result for each day of the week
+    const weekProgress = weekDays.map((date) => ({
+        date: date.toISOString().slice(0, 10),
+        active: sessionDays.has(date.toISOString().slice(0, 10)),
+    }));
 
     return weekProgress;
-};
+};  
