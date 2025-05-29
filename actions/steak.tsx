@@ -156,3 +156,39 @@ export const getWeeklyProgress = async (userId: string) => {
 
     return weekProgress;
 };  
+
+export const getTodaySessionTypeCounts = async (userId: string) => {
+    // Get current date in ICT (UTC+7)
+    const now = new Date();
+    const ictNow = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+    ictNow.setUTCHours(0, 0, 0, 0);
+
+    // Start and end of today in ICT
+    const ictStart = new Date(ictNow);
+    const ictEnd = new Date(ictNow);
+    ictEnd.setUTCHours(23, 59, 59, 999);
+
+    // Convert ICT start/end back to UTC for DB query
+    const utcStart = new Date(ictStart.getTime() - 7 * 60 * 60 * 1000);
+    const utcEnd = new Date(ictEnd.getTime() - 7 * 60 * 60 * 1000);
+
+    // Find all sessions for today
+    const sessions = await db.sessions.findMany({
+        where: {
+            userId,
+            createdAt: {
+                gte: utcStart,
+                lte: utcEnd,
+            },
+        },
+        select: { type: true },
+    });
+
+    // Count by type
+    const counts: Record<string, number> = {};
+    sessions.forEach((s) => {
+        counts[s.type] = (counts[s.type] || 0) + 1;
+    });
+    console.log("Today's session type counts:", counts);
+    return counts;
+};
