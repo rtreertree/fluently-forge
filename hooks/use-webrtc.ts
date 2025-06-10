@@ -1,39 +1,63 @@
-//hooks/use-webrtc.ts
 "use client";
-
-import { useState, useRef, useEffect, use } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Tool } from "@/lib/tools";
 import { createSession, endSession, getSession, offerSession } from "@/actions/session";
 import { useSession } from "next-auth/react";
 import { mergeAudioBlobsInParallel } from "@/lib/audio";
-import { useSearchParams } from 'next/navigation'
-import { uploadSession } from "@/actions/fileHandler";
-import { Readable } from "stream";
 import { sessions } from "@prisma/client";
 
-const useWebRTCAudioSession = (voice: string, timelimit: number = 8,activeSession: sessions, tools?: Tool[], ) => {
-    const session = useSession();
+// ---- Constants/Types ----
+const STATUS = {
+    NOT_FOUND: "Session not found",
+    ENDED: "Session has ended",
+    REQUEST_MIC: "Requesting microphone access...",
+    ESTABLISH: "Establishing connection...",
+    ESTABLISHED: "Session established successfully!",
+    PROCESSING: "Processing audio...",
+    UPLOADING: "Uploading audio...",
+    UPLOAD_ERROR: "Failed to upload audio",
+    UPLOAD_SUCCESS: "Audio uploaded successfully!",
+    UNSUPPORTED: "Recording not supported in this browser.",
+    ERROR: (err: string) => `Error: ${err}`,
+    BLOB_ERROR: "Failed to convert audio blobs",
+    STOPPING: "Stopping session...",
+} as const;
 
-    const [status, setStatus] = useState("");
+type Message =
+    | { type: string;[key: string]: any };
+
+type FunctionRegistry = Record<string, (...args: any[]) => Promise<any> | any>;
+
+// ---- Hook ----
+const useWebRTCAudioSession = (
+    voice: string,
+    timelimit: number = 8,
+    activeSession: sessions,
+    tools?: Tool[],
+) => {
+    const session = useSession();
+    const [status, setStatus] = useState<string>("");
     const [isSessionActive, setIsSessionActive] = useState(false);
     const audioIndicatorRef = useRef<HTMLDivElement | null>(null);
+
+    // Audio, peer refs
     const audioContextRef = useRef<AudioContext | null>(null);
     const audioStreamRef = useRef<MediaStream | null>(null);
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
     const dataChannelRef = useRef<RTCDataChannel | null>(null);
-    const [msgs, setMsgs] = useState<any[]>([]);                        //eslint-disable-line
+
+    // State
+    const [msgs, setMsgs] = useState<Message[]>([]);
     const [micOn, setMicOn] = useState(false);
     const [isPending, setIsPending] = useState(false);
+    const [sessionID, setSessionID] = useState<string | null>(null);
 
-    const [sessoinID, setSessionID] = useState<string | null>(null);
-
-    // Add function registry
-    const functionRegistry = useRef<Record<string, Function>>({});      //eslint-disable-line
+    const functionRegistry = useRef<FunctionRegistry>({});
     const [currentVolume, setCurrentVolume] = useState(0);
     const analyserRef = useRef<AnalyserNode | null>(null);
     const volumeIntervalRef = useRef<number | null>(null);
 
-    // Add audio recorder
+    // Audio recording
     const recorderRef = useRef<MediaRecorder | null>(null);
     const recordedBlobsRef = useRef<Blob[]>([]);
     const [isRecording, setIsRecording] = useState(false);
@@ -41,69 +65,59 @@ const useWebRTCAudioSession = (voice: string, timelimit: number = 8,activeSessio
     const remoteRecorderRef = useRef<MediaRecorder | null>(null);
     const remoteRecordedBlobsRef = useRef<Blob[]>([]);
 
-    
+    // To prevent setting state after unmount
+    const mountedRef = useRef(true);
+
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            stopSession().catch(console.error);
+        };
+        // eslint-disable-next-line
+    }, []);
+
+    // ----- Internal helpers -----
+
     const sendSystemMessage = (message: string) => {
-        if (!dataChannelRef.current || dataChannelRef.current.readyState !== "open") {
-            console.warn("Data channel not open. Cannot send system message.");
-            return;
-        }
-
-        const systemMsg = {
-            type: "conversation.item.create",
-            item: {
-                role: "user",
-                type: "message",
-                content: [
-                    {
-                        type: "input_text",
-                        text: "1 minute left, Try to wrap up the conversation. and end the conversation smoothly.",
-                    },
-                ],
-            }
-        };
-
-        const triggerMsg = {
-            type: "response.create",
-        };
-
+        const dc = dataChannelRef.current;
+        if (!dc || dc.readyState !== "open") return;
         try {
-            dataChannelRef.current.send(JSON.stringify(systemMsg));
+            const systemMsg: Message = {
+                type: "conversation.item.create",
+                item: {
+                    role: "user",
+                    type: "message",
+                    content: [{ type: "input_text", text: message }]
+                }
+            };
+            const triggerMsg: Message = { type: "response.create" };
+            dc.send(JSON.stringify(systemMsg));
+            dc.send(JSON.stringify(triggerMsg));
             setMsgs(prev => [...prev, systemMsg]);
-            dataChannelRef.current.send(JSON.stringify(triggerMsg));
         } catch (err) {
             console.error("Failed to send system message:", err);
         }
-    }
+    };
 
-    // Add method to register tool functions
-    const registerFunction = (name: string, fn: Function) => { // eslint-disable-line
+    const registerFunction = (name: string, fn: (...args: any[]) => any) => {
         functionRegistry.current[name] = fn;
     };
 
-    // Add data channel configuration
     const configureDataChannel = (dataChannel: RTCDataChannel) => {
-        const sessionUpdate = {
+        const sessionUpdate: Message = {
             type: 'session.update',
-            session: {
-                modalities: ['text', 'audio'],
-                tools: tools || []
-            }
+            session: { modalities: ['text', 'audio'], tools: tools || [] }
         };
-
         dataChannel.send(JSON.stringify(sessionUpdate));
     };
 
-    // Add data channel message handler
     const handleDataChannelMessage = async (event: MessageEvent) => {
         try {
-            const msg = JSON.parse(event.data);
+            const msg: Message = JSON.parse(event.data);
             if (msg.type === 'error') {
                 console.error('Error from server:', msg);
                 return;
-            }
-
-            if (msg.type === 'conversation.item.created') {
-                console.log('Received message:', msg.item);
             }
 
             if (msg.type === 'response.function_call_arguments.done') {
@@ -111,16 +125,14 @@ const useWebRTCAudioSession = (voice: string, timelimit: number = 8,activeSessio
                 if (fn) {
                     const args = JSON.parse(msg.arguments);
                     const result = await fn(args);
-
-                    const response = {
-                        type: 'conversation.item.create',
+                    const response: Message = {
+                        type: "conversation.item.create",
                         item: {
-                            type: 'function_call_output',
+                            type: "function_call_output",
                             call_id: msg.call_id,
                             output: JSON.stringify(result)
                         }
                     };
-
                     dataChannelRef.current?.send(JSON.stringify(response));
                 }
             }
@@ -131,117 +143,101 @@ const useWebRTCAudioSession = (voice: string, timelimit: number = 8,activeSessio
         }
     };
 
-    useEffect(() => {
-        return () => {
-            stopSession().catch((err) => {
-                console.error('Error during cleanup:', err);
-            });
-        };
-    }, []);
-
     const setupAudioVisualization = (stream: MediaStream) => {
-        const audioContext = new AudioContext();
-        const source = audioContext.createMediaStreamSource(stream);
-        const analyzer = audioContext.createAnalyser();
-        analyzer.fftSize = 256;
-
-        source.connect(analyzer);
-
-        const bufferLength = analyzer.frequencyBinCount;
+        const ctx = new window.AudioContext();
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        // Effect loop
+        const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
 
         const updateIndicator = () => {
-            if (!audioContext) return;
-
-            analyzer.getByteFrequencyData(dataArray);
-            const average = dataArray.reduce((a, b) => a + b) / bufferLength;
-
+            if (!ctx) return;
+            analyser.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((a, b) => a + b, 0) / bufferLength;
             if (audioIndicatorRef.current) {
                 audioIndicatorRef.current.classList.toggle("active", average > 30);
             }
-
-            requestAnimationFrame(updateIndicator);
+            if (mountedRef.current) requestAnimationFrame(updateIndicator);
         };
-
         updateIndicator();
-        audioContextRef.current = audioContext;
+        audioContextRef.current = ctx;
     };
 
+    // Calculate RMS volume
     const getVolume = (): number => {
         if (!analyserRef.current) return 0;
-
         const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
         analyserRef.current.getByteTimeDomainData(dataArray);
-
-        // Calculate RMS (Root Mean Square)
         let sum = 0;
         for (let i = 0; i < dataArray.length; i++) {
             const float = (dataArray[i] - 128) / 128;
             sum += float * float;
         }
-
         return Math.sqrt(sum / dataArray.length);
     };
 
+    // ----- Core methods -----
+
     const startSession = async () => {
+        setIsPending(true);
+
         try {
-            setIsPending(true);
-
-            // Check session logic goes here
             if (!activeSession) {
-                setStatus("Session not found");
+                setStatus(STATUS.NOT_FOUND);
+                setIsPending(false);
                 return;
             }
-            
-            console.log("Active session:", activeSession);
-
-            const session = await getSession(activeSession.id);
-
-            if (!session) {
-                setStatus("Session not found");
+            const currSession = await getSession(activeSession.id);
+            if (!currSession) {
+                setStatus(STATUS.NOT_FOUND);
+                setIsPending(false);
+                return;
+            }
+            if (currSession.status === "COMPLETED" || currSession.endedAt || currSession.token === "NULL") {
+                setStatus(STATUS.ENDED);
+                setIsPending(false);
                 return;
             }
 
-            if (session.status === "COMPLETED" || session.endedAt || session.token === "NULL") {
-                setIsPending(true);
-                setStatus("Session has ended");
+            const ephemeralToken = currSession.token;
+            setSessionID(currSession.id);
+            setStatus(STATUS.REQUEST_MIC);
+
+            // Feature-detect MediaRecorder
+            if (typeof window === "undefined" || typeof window.MediaRecorder === "undefined") {
+                setStatus(STATUS.UNSUPPORTED);
+                setIsPending(false);
                 return;
             }
-            const ephemeralToken = session.token;
-            setSessionID(session.id);
 
-            setStatus("Requesting microphone access...");
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+            });
+
             audioStreamRef.current = stream;
             setupAudioVisualization(stream);
+            setStatus(STATUS.ESTABLISH);
 
-
-            setStatus("Establishing connection...");
             const pc = new RTCPeerConnection();
+
+            // Remote audio
             const audioEl = document.createElement("audio");
             audioEl.autoplay = true;
-
             pc.ontrack = (e) => {
                 audioEl.srcObject = e.streams[0];
-
-                // Set up audio analysis
-                const audioContext = new (window.AudioContext || window.AudioContext)();
-                const source = audioContext.createMediaStreamSource(e.streams[0]);
-                const analyser = audioContext.createAnalyser();
+                // Set up audio analysis for remote stream
+                const ctx = new window.AudioContext();
+                const source = ctx.createMediaStreamSource(e.streams[0]);
+                const analyser = ctx.createAnalyser();
                 analyser.fftSize = 256;
-
                 source.connect(analyser);
                 analyserRef.current = analyser;
-
-                // Start volume monitoring
                 volumeIntervalRef.current = window.setInterval(() => {
                     const volume = getVolume();
-                    setCurrentVolume(volume);
-
-                    // Optional: Log when speech is detected
-                    if (volume > 0.1) {
-                        console.log('Speech detected with volume:', volume);
-                    }
+                    if (mountedRef.current) setCurrentVolume(volume);
                 }, 100);
 
                 if (remoteRecorderRef.current) {
@@ -249,7 +245,6 @@ const useWebRTCAudioSession = (voice: string, timelimit: number = 8,activeSessio
                     remoteRecorderRef.current = null;
                     remoteRecordedBlobsRef.current = [];
                 }
-
                 try {
                     const remoteRecorder = new MediaRecorder(e.streams[0]);
                     remoteRecordedBlobsRef.current = [];
@@ -265,30 +260,19 @@ const useWebRTCAudioSession = (voice: string, timelimit: number = 8,activeSessio
                 }
             };
 
-            // Add data channel
+            // Data channel
             const dataChannel = pc.createDataChannel('response');
             dataChannelRef.current = dataChannel;
-
-            dataChannel.onopen = () => {
-                configureDataChannel(dataChannel);
-            };
-
+            dataChannel.onopen = () => configureDataChannel(dataChannel);
             dataChannel.onmessage = handleDataChannelMessage;
 
-
             pc.addTrack(stream.getTracks()[0]);
-
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-
             const sdpResponse = await offerSession(offer.sdp as string, ephemeralToken as string);
+            await pc.setRemoteDescription({ type: "answer", sdp: sdpResponse });
 
-
-            await pc.setRemoteDescription({
-                type: "answer",
-                sdp: sdpResponse,
-            });
-
+            // Local recorder
             const mediaRecorder = new MediaRecorder(stream);
             recordedBlobsRef.current = [];
             mediaRecorder.ondataavailable = (event: BlobEvent) => {
@@ -298,81 +282,87 @@ const useWebRTCAudioSession = (voice: string, timelimit: number = 8,activeSessio
             };
             mediaRecorder.start();
             recorderRef.current = mediaRecorder;
-            setIsRecording(true);
 
-            peerConnectionRef.current = pc;
-            setIsSessionActive(true);
-            setStatus("Session established successfully!");
-
-            setIsPending(false);
-            setMicOn(true);
-
-        } catch (err) {
+            if (mountedRef.current) {
+                setIsRecording(true);
+                peerConnectionRef.current = pc;
+                setIsSessionActive(true);
+                setStatus(STATUS.ESTABLISHED);
+                setIsPending(false);
+                setMicOn(true);
+            }
+        } catch (err: any) {
             console.error(err);
-            setStatus(`Error: ${err}`);
-            stopSession();
+            if (mountedRef.current) {
+                setStatus(STATUS.ERROR(err?.message || String(err)));
+                setIsPending(false);
+                stopSession();
+            }
         }
     };
 
-
-    const sendRecordingToServer = async () => {
-        if (recordedBlobsRef.current.length === 0 && remoteRecordedBlobsRef.current.length === 0) return;
+    async function sendRecordingToServer() {
+        if (recordedBlobsRef.current.length === 0 && remoteRecordedBlobsRef.current.length === 0) {
+            console.warn("No audio recorded to send.");
+            setStatus(STATUS.BLOB_ERROR);
+            return;
+        }
 
         const userBlob = new Blob(recordedBlobsRef.current, { type: 'audio/webm' });
         const agentBlob = new Blob(remoteRecordedBlobsRef.current, { type: "audio/webm" });
 
-        const userBlobWav = await mergeAudioBlobsInParallel([userBlob]);
-        const agentBlobWav = await mergeAudioBlobsInParallel([agentBlob]);
+        setStatus(STATUS.PROCESSING);
 
-        setStatus("Processing audio...");
-        const merged = await mergeAudioBlobsInParallel([userBlob, agentBlob]);
-        if (!merged || !agentBlobWav || !userBlobWav) {
-            setStatus("Failed to convert audio blobs");
-            console.error("Failed to convert audio blobs");
+        let userBlobWav, agentBlobWav, merged;
+        try {
+            [userBlobWav, agentBlobWav, merged] = await Promise.all([
+                mergeAudioBlobsInParallel([userBlob]),
+                mergeAudioBlobsInParallel([agentBlob]),
+                mergeAudioBlobsInParallel([userBlob, agentBlob]),
+            ]);
+        } catch (e) {
+            setStatus(STATUS.BLOB_ERROR);
+            return;
+        }
+        if (!userBlobWav || !agentBlobWav || !merged) {
+            setStatus(STATUS.BLOB_ERROR);
             return;
         }
 
-        // create form data
+        // form data
         const formData = new FormData();
         formData.append("user-audio", userBlobWav);
         formData.append("agent-audio", agentBlobWav);
         formData.append("mixed-audio", merged);
         formData.append("user-id", session.data?.user.id || "");
-        formData.append("session-id", sessoinID as string || "");
+        formData.append("session-id", sessionID as string || "");
 
-        setStatus("Uploading audio...");
+        setStatus(STATUS.UPLOADING);
 
         try {
+            await new Promise(resolve => setTimeout(resolve, 1000));
             const response = await fetch("/api/session/upload-audio", {
                 method: "POST",
-                headers: {
-                    Authorization: `Bearer ${session.data?.user.id}`,
-                },
+                headers: { Authorization: `Bearer ${session.data?.user.id}` },
                 body: formData,
             });
-
             if (!response.ok) {
-                setStatus("Failed to upload audio");
+                setStatus(STATUS.UPLOAD_ERROR);
                 console.error("Failed to upload audio:", response.statusText);
                 return;
             }
-
-            const data = await response.json();
-            console.log("Upload successful:", data);
+            // Optionally process response...
+            if (mountedRef.current) setStatus(STATUS.UPLOAD_SUCCESS);
         } catch (err) {
             console.error("Error uploading audio:", err);
+            if (mountedRef.current) setStatus(STATUS.UPLOAD_ERROR);
+            return;
         }
+    }
 
-        setStatus("Audio uploaded successfully!");
-        console.log("Audio uploaded successfully!");
-    };
-
-    // Add this helper function somewhere in the file (above or below stopSession):
     function stopRecorderAndWait(recorder: MediaRecorder | null): Promise<void> {
-        console.log("Stopping recorder...");
         return new Promise((resolve) => {
             if (!recorder) return resolve();
-            // If already stopped, resolve immediately
             if (recorder.state === "inactive") return resolve();
             recorder.onstop = () => resolve();
             recorder.stop();
@@ -381,71 +371,65 @@ const useWebRTCAudioSession = (voice: string, timelimit: number = 8,activeSessio
 
     const stopSession = async () => {
         if (!isSessionActive) return;
-        setStatus("Stopping session...");
+        setStatus(STATUS.STOPPING);
         setMicOn(false);
         setIsPending(true);
 
-        if (dataChannelRef.current) {
-            dataChannelRef.current.close();
+        try {
+            dataChannelRef.current?.close();
             dataChannelRef.current = null;
-        }
-        if (peerConnectionRef.current) {
-            peerConnectionRef.current.close();
+            peerConnectionRef.current?.close();
             peerConnectionRef.current = null;
-        }
-        if (audioContextRef.current) {
-            audioContextRef.current.close();
+            audioContextRef.current?.close();
             audioContextRef.current = null;
-        }
-        if (audioStreamRef.current) {
-            audioStreamRef.current.getTracks().forEach((track) => track.stop());
+
+            audioStreamRef.current?.getTracks().forEach(t => t.stop());
             audioStreamRef.current = null;
-        }
-        if (audioIndicatorRef.current) {
-            audioIndicatorRef.current.classList.remove("active");
-        }
-        if (volumeIntervalRef.current) {
-            clearInterval(volumeIntervalRef.current);
-            volumeIntervalRef.current = null;
-        }
-        if (analyserRef.current) {
+
+            if (audioIndicatorRef.current) audioIndicatorRef.current.classList.remove("active");
+            if (volumeIntervalRef.current) {
+                clearInterval(volumeIntervalRef.current);
+                volumeIntervalRef.current = null;
+            }
             analyserRef.current = null;
+
+            // Wait for recorders
+            await Promise.all([
+                stopRecorderAndWait(recorderRef.current),
+                stopRecorderAndWait(remoteRecorderRef.current)
+            ]);
+
+            await sendRecordingToServer();
+            if (sessionID) await endSession(sessionID);
+
+            // Clear refs
+            recordedBlobsRef.current = [];
+            remoteRecordedBlobsRef.current = [];
+            recorderRef.current = null;
+            remoteRecorderRef.current = null;
+
+            if (mountedRef.current) {
+                setCurrentVolume(0);
+                setIsSessionActive(false);
+                setStatus("");
+                setMsgs([]);
+                setMicOn(false);
+                setIsPending(false);
+            }
+        } catch (err) {
+            console.error("stopSession error:", err);
         }
-
-        // Stop both recorders and wait for their onstop events
-        const localStop = stopRecorderAndWait(recorderRef.current);
-        const remoteStop = stopRecorderAndWait(remoteRecorderRef.current);
-
-        await Promise.all([localStop, remoteStop]); // Wait for both recorders to fully stop
-        await sendRecordingToServer();
-
-        endSession(sessoinID || "").catch((err) => {
-            console.error("Error ending session:", err);
-        });
-
-        recordedBlobsRef.current = [];
-        remoteRecordedBlobsRef.current = [];
-        recorderRef.current = null;
-        remoteRecorderRef.current = null;
-
-        setCurrentVolume(0);
-        setIsSessionActive(false);
-        setStatus("");
-        setMsgs([]);
-        setMicOn(false);
-        setIsPending(false);
     };
 
-    // set mic on/off
     const setMicOnOff = (isOn: boolean) => {
         if (audioStreamRef.current) {
-            const audioTracks = audioStreamRef.current.getAudioTracks();
-            if (audioTracks.length > 0) {
-                audioTracks[0].enabled = isOn;
+            setMicOn(isOn);
+            const tracks = audioStreamRef.current.getAudioTracks();
+            if (tracks.length > 0) {
+                tracks[0].enabled = isOn;
             }
         }
     };
-
 
     const handleStartStopClick = async () => {
         if (isSessionActive) {
@@ -455,6 +439,7 @@ const useWebRTCAudioSession = (voice: string, timelimit: number = 8,activeSessio
         }
     };
 
+    // ---- Return ----
     return {
         status,
         isSessionActive,
@@ -466,7 +451,7 @@ const useWebRTCAudioSession = (voice: string, timelimit: number = 8,activeSessio
         handleStartStopClick,
         registerFunction,
         setMicOnOff,
-            msgs,
+        msgs,
         currentVolume
     };
 };

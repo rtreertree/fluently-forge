@@ -25,8 +25,6 @@ export default function RootLayout({
 				return;
 			}
 
-			console.log("pathname", pathname);
-
 			if (pathname !== "/session/active") {
 				const activeSession = await isUserInSession(session.user.id || "");
 				if (activeSession) {

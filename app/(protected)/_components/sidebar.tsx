@@ -58,29 +58,29 @@ export const AppSidebar = () => {
                         <SidebarMenu>
                             {items.map((item, idx) => {
                                 const isActive = pathname === item.url;
-                                // Only open if hovered and not collapsed
                                 const isOpen = hoveredIndex === idx && !isCollapsed;
                                 return (
-                                    <li key={item.title} className="list-none p-0 m-0">
-                                        <SidebarMenuItem>
-                                            <SidebarMenuButton
-                                                asChild
-                                                variant={isActive ? "outline" : "default"}
-                                                onMouseEnter={() => !isCollapsed && setHoveredIndex(idx)}
-                                                onMouseLeave={() => setHoveredIndex(null)}
-                                            >
-                                                <Link href={item.url} aria-label={item.title} className="flex items-center gap-2">
-                                                    <item.icon size={20} />
-                                                    <span>{item.title}</span>
-                                                </Link>
-                                            </SidebarMenuButton>
-                                        </SidebarMenuItem>
+                                    <SidebarMenuItem key={item.title}>
+                                        <SidebarMenuButton
+                                            asChild
+                                            variant={isActive ? "outline" : "default"}
+                                            onMouseEnter={() => !isCollapsed && setHoveredIndex(idx)}
+                                            onMouseLeave={() => setHoveredIndex(null)}
+                                            onFocus={() => !isCollapsed && setHoveredIndex(idx)}
+                                            onBlur={() => setHoveredIndex(null)}
+                                        >
+                                            <Link href={item.url} aria-label={item.title} className="flex items-center gap-2">
+                                                <item.icon size={20} />
+                                                <span>{item.title}</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+
                                         <div
                                             className={`
-                                                transition-all duration-300 ease-in-out
-                                                overflow-hidden
-                                                ${isOpen ? "max-h-24 opacity-100 my-1" : "max-h-0 opacity-0 my-0"}
-                                            `}
+            transition-all duration-300 ease-in-out
+            overflow-hidden
+            ${isOpen ? "max-h-24 opacity-100 my-1" : "max-h-0 opacity-0 my-0"}
+          `}
                                             onMouseEnter={() => !isCollapsed && setHoveredIndex(idx)}
                                             onMouseLeave={() => setHoveredIndex(null)}
                                             style={{ willChange: "max-height, opacity" }}
@@ -89,7 +89,7 @@ export const AppSidebar = () => {
                                                 {item.description}
                                             </div>
                                         </div>
-                                    </li>
+                                    </SidebarMenuItem>
                                 );
                             })}
                         </SidebarMenu>
