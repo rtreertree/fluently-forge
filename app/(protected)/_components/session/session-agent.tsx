@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Mic, MicOff } from "lucide-react";
 import useWebRTCAudioSession from "@/hooks/use-webrtc";
 import { Button } from "@/components/ui/button";

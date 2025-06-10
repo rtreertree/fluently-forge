@@ -183,7 +183,6 @@ const useWebRTCAudioSession = (
 
     const startSession = async () => {
         setIsPending(true);
-
         try {
             if (!activeSession) {
                 setStatus(STATUS.NOT_FOUND);
@@ -214,7 +213,7 @@ const useWebRTCAudioSession = (
             }
 
             const stream = await navigator.mediaDevices.getUserMedia({
-                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                audio: true
             });
 
             audioStreamRef.current = stream;
@@ -265,12 +264,12 @@ const useWebRTCAudioSession = (
             dataChannelRef.current = dataChannel;
             dataChannel.onopen = () => configureDataChannel(dataChannel);
             dataChannel.onmessage = handleDataChannelMessage;
-
             pc.addTrack(stream.getTracks()[0]);
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             const sdpResponse = await offerSession(offer.sdp as string, ephemeralToken as string);
             await pc.setRemoteDescription({ type: "answer", sdp: sdpResponse });
+            
 
             // Local recorder
             const mediaRecorder = new MediaRecorder(stream);
