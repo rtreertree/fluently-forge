@@ -37,7 +37,6 @@ const SessionCreateCard: React.FC<SessionCreateCardProps> = ({ type }: SessionCr
             alert("You already have an active session. Please end it before starting a new one.");
             return;
         };
-
     };
 
 

@@ -46,37 +46,36 @@ const SessionAgent = ({ session }: SessionAgentProps) => {
 
     
     return (
-        <div className="border text-center justify-items-center p-4 rounded-2xl">
-            <h1 className="text-2xl font-bold mb-4 pt-2">{status}</h1>
-            <div
-                className="flex items-center justify-center h-full relative"
-                style={{ width: `${SVG_SIZE}px`, height: `${SVG_SIZE}px` }}
+        <div className="w-full max-w-md border text-center flex flex-col items-center justify-center p-6 rounded-2xl shadow-md bg-background">
+        <h1 className="text-2xl font-bold mb-4 pt-2">{`${micOn}${status}`}</h1>
+
+        <div
+            className="flex items-center justify-center relative"
+            style={{ width: `${SVG_SIZE}px`, height: `${SVG_SIZE}px` }}
+        >
+            <button
+                type="button"
+                aria-label={micOn && !isPending ? "Mute microphone" : "Unmute microphone"}
+                onClick={micOnClick}
+                disabled={!isSessionActive}
+                className="z-10 absolute bg-transparent border-none"
             >
-                <button
-                    type="button"
-                    aria-label={
-                        micOn && !isPending ? "Mute microphone" : "Unmute microphone"
-                    }
-                    onClick={micOnClick}
-                    disabled={!isSessionActive}
-                    className="z-10 absolute"
-                    style={{ background: "transparent", border: "none" }}
-                >
-                    {micOn && !isPending ? (
-                        <Mic size={28} className="text-black dark:text-white" />
-                    ) : (
-                        <MicOff size={28} className="text-black dark:text-white" />
-                    )}
-                </button>
-                {/* Radial Bars visualization */}
-                <RadialVolumeBars volume={currentVolume} isActive={isSessionActive} />
-                {/* Soft blur "glow" in the middle */}
-                <span className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] bg-primary-foreground dark:bg-primary blur-[120px]" />
-            </div>
-            <Button onClick={handleButtonClick} disabled={isPending} className="mt-4">
-                {isSessionActive ? "Stop Session" : "Start"}
-            </Button>
+                {micOn && !isPending ? (
+                    <Mic size={28} className="text-black dark:text-white" />
+                ) : (
+                    <MicOff size={28} className="text-black dark:text-white" />
+                )}
+            </button>
+
+            <RadialVolumeBars volume={currentVolume} isActive={isSessionActive} />
+
+            <span className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] bg-primary-foreground dark:bg-primary blur-[120px]" />
         </div>
+
+        <Button onClick={handleButtonClick} disabled={isPending} className="mt-6 w-32">
+            {isSessionActive ? "Stop Session" : "Start"}
+        </Button>
+    </div>
     );
 };
 
