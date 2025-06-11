@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
-import { Home, Calendar, PencilLine, List } from "lucide-react";
+import { Home, Calendar, PencilLine, List, Video } from "lucide-react";
 import {
     Sidebar,
     SidebarContent,
@@ -28,6 +28,7 @@ type SidebarItem = {
 export const AppSidebar = () => {
     const items: SidebarItem[] = [
         { title: "Home", url: "/home", icon: Home, description: "Go to your dashboard home." },
+        {title: "Video call", url: "/video-call/create", icon: Video, description: "Join a video call session." },
         { title: "Daily Streak", url: "/daily-streak", icon: Calendar, description: "Track your daily learning streak." },
         { title: "Create session", url: "/session/create", icon: PencilLine, description: "Start a new learning session." },
         { title: "Session list", url: "/session/list", icon: List, description: "View all your previous sessions." },

@@ -110,3 +110,13 @@ model sessions {
 
     @@map("sessions")
 }
+model video_session{
+    id           String        @id @default(cuid())
+    userId1       String        @map("user_id")
+    userId2       String        @map("user_id2")
+    createdAt    DateTime      @default(now()) @map("created_at")
+    topic        String
+    status       SessionStatus @default(PENDING) @map("status")
+
+    @@map("video_sessions")
+}

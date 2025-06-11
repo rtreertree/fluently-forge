@@ -26,6 +26,7 @@
     "@radix-ui/react-toast": "^1.2.6",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@types/bcryptjs": "^2.4.6",
+    "agora-rtc-sdk-ng": "^4.23.4",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
