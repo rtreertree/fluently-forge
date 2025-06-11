@@ -12,6 +12,7 @@ export const isVideoSessionActive = async (userId: string, topic: string) => {
         { userId1: userId },
         { userId2: userId }
       ],
+      status: "ACTIVE"
     },
   });
 
@@ -31,7 +32,9 @@ export const isVideoSessionActive = async (userId: string, topic: string) => {
     if (videoSession) {
       await db.video_session.update({
         where: { id: videoSession.id },
-        data: { userId2: userId }, // Set status to ACTIVE when joined
+        data: { userId2: userId,
+                status: "ACTIVE"  
+         }, // Set status to ACTIVE when joined
       });
       return "joined-session";
     }
@@ -55,3 +58,23 @@ export const isVideoSessionActive = async (userId: string, topic: string) => {
 export const getAllVideoSessions = async () => {
   return db.video_session.findMany();
 };
+
+export const getUserVideoSession = async (userId: string) => {
+  return db.video_session.findFirst({
+    where: {
+      OR: [
+        { userId1: userId },
+        { userId2: userId }
+      ],
+      status: "ACTIVE", 
+    },
+  });
+};
+
+export const endVideoSession = async (sessionId: string) => {
+  return db.video_session.update({
+    where: { id: sessionId },
+    data: { status: "COMPLETED" },
+  });
+};
+

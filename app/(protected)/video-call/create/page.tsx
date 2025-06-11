@@ -5,11 +5,10 @@ import { useForm } from "react-hook-form";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
-import { isVideoSessionActive } from "@/actions/video-session";
+import { useEffect, useState } from "react";
+import { isVideoSessionActive, getUserVideoSession } from "@/actions/video-session";
 import { useSession } from "next-auth/react";
 import { Link } from "lucide-react";
-import { VideoRoom } from "@/app/(protected)/_components/video_session/room";
 
 const videoCallSchema = z.object({
   prompt: z.string().min(1, "Topic is required").max(80, "Your prompt must be less than 80 characters"),
@@ -19,8 +18,20 @@ const VideoCallPage = () => {
   const [joined, setJoined] = useState(false);
   const [sessionResult, setSessionResult] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
+  const [userSession, setUserSession] = useState<any>(null);
 
   const session = useSession();
+
+  // Fetch user's session on mount and when sessionResult changes
+  useEffect(() => {
+    const fetchSession = async () => {
+      const userId = session.data?.user?.id;
+      if (!userId) return;
+      const sessionData = await getUserVideoSession(userId);
+      setUserSession(sessionData);
+    };
+    fetchSession();
+  }, [session.data?.user?.id, sessionResult]);
 
   const form = useForm<z.infer<typeof videoCallSchema>>({
     resolver: zodResolver(videoCallSchema),
@@ -78,13 +89,20 @@ const VideoCallPage = () => {
           </form>
         </Form>
       </div>
-      <Button
-        onClick={() => {
-          window.location.href = "/video-call/meeting";
-        }}
-      >
-        join button
-      </Button>
+      {userSession && (
+        <div className="mt-6 w-full max-w-md bg-green-50 p-4 rounded-lg shadow flex flex-col items-center">
+          <div className="mb-2 text-green-800 font-semibold">
+            Your Session: {userSession.topic}
+          </div>
+          <Button
+            onClick={() => {
+              window.location.href = `/video-call/meeting?sessionId=${userSession.id}`;
+            }}
+          >
+            Join Session
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
