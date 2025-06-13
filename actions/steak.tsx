@@ -70,9 +70,7 @@ export const getDailyStreak = async (userId: string) => {
             (date) => date.getTime() >= streakStart.getTime()
         );
         // Add the streak start date if not present
-        if (!filteredDates.some(date => date.getTime() === streakStart.getTime())) {
-            filteredDates.unshift(streakStart);
-        }
+
         // Sort again to ensure order
         filteredDates.sort((a, b) => a.getTime() - b.getTime());
     }

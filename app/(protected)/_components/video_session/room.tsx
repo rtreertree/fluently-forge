@@ -6,7 +6,7 @@ import type { ICameraVideoTrack, IMicrophoneAudioTrack, IRemoteVideoTrack, IRemo
 
 const APP_ID = process.env.NEXT_PUBLIC_AGORA_APP_ID!;
 const TOKEN =
-  '007eJxTYFi3YtoKhjhTUf8dG/8qhdt/+Wy01DTolJ+QSBuv1qrdJgcVGFJSLMzNTRItzCzMDEwSTSwtLA1SDM1SEs1SUo0tzS3Nfqd6ZjQEMjI0KLuxMjJAIIjPzpCXWl6SWlzCwAAAJUAejw==';
+  "007eJxTYHg+iUlOs3Lfcl8Xg6N/lLY+CTuikXXD5N/OKNerTUtcEz0UGFJSLMzNTRItzCzMDEwSTSwtLA1SDM1SEs1SUo0tzS3NeJ55ZzQEMjKs3LaaiZEBAkF8doa81PKS1OISBgYArFAg0g==";
 const CHANNEL = 'newtest';
 
 const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
@@ -74,7 +74,7 @@ export const VideoRoom = () => {
     <div style={{ display: 'flex', justifyContent: 'center' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 200px)' }}>
         {users.map(user => (
-          <VideoPlayer key={user.uid} user={user} />
+          <VideoPlayer user={user} />
         ))}
       </div>
     </div>

@@ -10,7 +10,6 @@ const MeetingPage = () => {
   const [userSession, setUserSession] = useState<any>(null);
   const [isEnding, setIsEnding] = useState(false);
 
-  // Fetch user's session on mount and when session updates
   useEffect(() => {
     const fetchSession = async () => {
       const userId = session?.user?.id;
@@ -21,9 +20,8 @@ const MeetingPage = () => {
     fetchSession();
   }, [session?.user?.id]);
 
-  // Function to end video session
   const handleEndSession = async () => {
-    if (!userSession?.id) return; // Ensure session ID exists
+    if (!userSession?.id) return;
     setIsEnding(true);
     const { endVideoSession } = await import('@/actions/video-session');
     await endVideoSession(userSession.id);
@@ -31,19 +29,19 @@ const MeetingPage = () => {
   };
 
   return (
-    <div>
+    <div className="min-h-screen   flex flex-col items-center justify-center px-4 py-8">
       <VideoRoom />
-      
+
       {userSession && userSession.id ? (
         <Button
-          className="mt-6 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          className="mt-6 px-6 py-2 bg-white text-black border border-white rounded hover:bg-gray-200 transition"
           onClick={handleEndSession}
           disabled={isEnding}
         >
-          End Session
+          {isEnding ? "Ending..." : "End Session"}
         </Button>
       ) : (
-        <p>Loading session...</p>
+        <p className="mt-6 text-gray-400">Loading session...</p>
       )}
     </div>
   );
