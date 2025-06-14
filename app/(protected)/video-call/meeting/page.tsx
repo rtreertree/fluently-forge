@@ -10,6 +10,12 @@ const MeetingPage = () => {
   const [userSession, setUserSession] = useState<any>(null);
   const [isEnding, setIsEnding] = useState(false);
 
+  // Mic/camera state
+  const [micOn, setMicOn] = useState(true);
+  const [camOn, setCamOn] = useState(true);
+  // Store local tracks for toggling
+  const [localTracks, setLocalTracks] = useState<[any, any]>([null, null]);
+
   useEffect(() => {
     const fetchSession = async () => {
       const userId = session?.user?.id;
@@ -28,9 +34,44 @@ const MeetingPage = () => {
     window.location.href = "/video-call/create";
   };
 
+  // Toggle mic
+  const handleToggleMic = () => {
+    if (localTracks[0]) {
+      localTracks[0].setEnabled(!micOn);
+      setMicOn(!micOn);
+    }
+  };
+
+  // Toggle camera
+  const handleToggleCam = () => {
+    if (localTracks[1]) {
+      localTracks[1].setEnabled(!camOn);
+      setCamOn(!camOn);
+    }
+  };
+
   return (
-    <div className="min-h-screen   flex flex-col items-center justify-center px-4 py-8">
-      <VideoRoom />
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 ">
+      <VideoRoom
+        micOn={micOn}
+        camOn={camOn}
+        setLocalTracks={setLocalTracks}
+      />
+
+      <div className="flex gap-4 mt-6">
+        <Button
+          onClick={handleToggleMic}
+          className={`px-4 py-2 rounded ${micOn ? "bg-green-500 text-white" : "bg-gray-700 text-gray-300"}`}
+        >
+          {micOn ? "Mic On" : "Mic Off"}
+        </Button>
+        <Button
+          onClick={handleToggleCam}
+          className={`px-4 py-2 rounded ${camOn ? "bg-green-500 text-white" : "bg-gray-700 text-gray-300"}`}
+        >
+          {camOn ? "Camera On" : "Camera Off"}
+        </Button>
+      </div>
 
       {userSession && userSession.id ? (
         <Button

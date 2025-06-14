@@ -77,8 +77,8 @@ export const getDailyStreak = async (userId: string) => {
 
     // Check for missing days (break in streak)
     for (let i = 1; i < filteredDates.length; i++) {
-        const prev = filteredDates[i - 1];
-        const curr = filteredDates[i];
+        const prev = filteredDates[i];
+        const curr = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);;
         const diff = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
         if (diff > 1) {
             // Streak broken, update streak to latest activity date

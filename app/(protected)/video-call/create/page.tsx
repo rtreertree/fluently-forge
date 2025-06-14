@@ -2,20 +2,18 @@
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useState } from "react";
-import { isVideoSessionActive, getUserVideoSession } from "@/actions/video-session";
+import { isVideoSessionActive, getUserVideoSession, generateAndStoreToken } from "@/actions/video-session";
 import { useSession } from "next-auth/react";
-import { Link } from "lucide-react";
 
 const videoCallSchema = z.object({
   prompt: z.string().min(1, "Topic is required").max(80, "Your prompt must be less than 80 characters"),
 });
 
 const VideoCallPage = () => {
-  const [joined, setJoined] = useState(false);
   const [sessionResult, setSessionResult] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [userSession, setUserSession] = useState<any>(null);
@@ -53,6 +51,13 @@ const VideoCallPage = () => {
     setSessionResult(result);
     setChecking(false);
   }
+
+  // Handler for the single Join Session button
+  const handleJoinSession = async () => {
+    if (!userSession) return;
+    await generateAndStoreToken(session.data?.user?.id || "");
+    window.location.href = `/video-call/meeting?sessionId=${userSession.id}`;
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-5 bg-gray-50">
@@ -95,9 +100,8 @@ const VideoCallPage = () => {
             Your Session: {userSession.topic}
           </div>
           <Button
-            onClick={() => {
-              window.location.href = `/video-call/meeting?sessionId=${userSession.id}`;
-            }}
+            className="w-full"
+            onClick={handleJoinSession}
           >
             Join Session
           </Button>
