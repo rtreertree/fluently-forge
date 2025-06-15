@@ -1,3 +1,5 @@
+import { Readable } from "stream";
+
 declare global {
     interface Window {
         webkitAudioContext: typeof AudioContext
@@ -99,4 +101,13 @@ function audioBufferToWavBlob(buffer: AudioBuffer): Blob {
     }
     // Correct MIME type for WAV
     return new Blob([view], { type: "audio/wav" });
+}
+
+export function readableToBuffer(readable: Readable): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        readable.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+        readable.on('end', () => resolve(Buffer.concat(chunks)));
+        readable.on('error', reject);
+    });
 }

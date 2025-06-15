@@ -52,7 +52,7 @@ enum SessionStatus {
 }
 
 model User {
-    id            String    @id @default(cuid())
+    id            String    @id @default(uuid())
     name          String?
     email         String?   @unique
     emailVerified DateTime? @map("email_verified")
@@ -67,7 +67,7 @@ model User {
 }
 
 model Account {
-    id                String  @id @default(cuid())
+    id                String  @id @default(uuid())
     userId            String  @map("user_id")
     type              String
     provider          String
@@ -87,7 +87,7 @@ model Account {
 }
 
 model logs {
-    id        String   @id @default(cuid())
+    id        String   @id @default(uuid())
     userId    String?  @map("user_id")
     type      LogType  @map("type")
     action    String
@@ -97,7 +97,7 @@ model logs {
 }
 
 model sessions {
-    id           String        @id @default(cuid())
+    id           String        @id @default(uuid())
     userId       String        @map("user_id")
     createdAt    DateTime      @default(now()) @map("created_at")
     type         SessionType   @map("type")
@@ -111,7 +111,7 @@ model sessions {
     @@map("sessions")
 }
 model video_session{
-    id           String        @id @default(cuid())
+    id           String        @id @default(uuid())
     userId1       String        @map("user_id")
     userId2       String        @map("user_id2")
     createdAt    DateTime      @default(now()) @map("created_at")

@@ -1,6 +1,10 @@
 "use server";
 
-import { minioClient, BUCKET_NAME} from "@/lib/files";
+import { minioClient, BUCKET_NAME } from "@/lib/files";
+import { ReadStream } from "fs";
+import { PassThrough } from "stream";
+import FormData from 'form-data';
+
 
 
 export interface SessionUploadInterface {
@@ -10,14 +14,14 @@ export interface SessionUploadInterface {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     agentAudio: Buffer<any>;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    userAudio: Buffer<any>;     
+    userAudio: Buffer<any>;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mergedAudio: Buffer<any>;
 
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function uploadFile (fileBuffer: Buffer<any>, fileName: string) {
+export async function uploadFile(fileBuffer: Buffer<any>, fileName: string) {
     if (!minioClient) throw new Error("Minio client is not initialized");
     if (!(await minioClient.bucketExists(BUCKET_NAME))) await minioClient.makeBucket(BUCKET_NAME, "us-east-1");
 
@@ -48,3 +52,20 @@ export async function uploadSession(sessionUpload: SessionUploadInterface) {
 
     await Promise.all(uploadPromises);
 };
+
+
+export async function getRecordings(sessionId: string) {
+    try {
+        let size = 0
+        const dataStream = await minioClient.getObject(BUCKET_NAME, `${sessionId}/merged.wav`)
+        dataStream.on('data', function (chunk) {
+            size += chunk.length
+        })
+        dataStream.on('error', function (err) {
+            console.log(err)
+        })
+        return dataStream;;
+    } catch (error) {
+        return null;
+    }
+}
