@@ -84,17 +84,29 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
     ) => {
       await client.subscribe(user, mediaType);
       setUsers((prev) => {
-        if (prev.some((u) => u.uid === user.uid)) return prev;
         const remoteName =
           sessionUserNames.find((n) => n !== session?.user?.name) ||
           sessionUserNames[1];
+        const existing = prev.find((u) => u.uid === user.uid);
+        if (existing) {
+          return prev.map((u) =>
+            u.uid === user.uid
+              ? {
+                  ...u,
+                  videoTrack: mediaType === "video" ? user.videoTrack : u.videoTrack,
+                  audioTrack: mediaType === "audio" ? user.audioTrack : u.audioTrack,
+                }
+              : u
+          );
+        }
+        // Add new user
         return [
           ...prev,
           {
             uid: user.uid,
             name: remoteName,
-            videoTrack: user.videoTrack,
-            audioTrack: user.audioTrack,
+            videoTrack: mediaType === "video" ? user.videoTrack : undefined,
+            audioTrack: mediaType === "audio" ? user.audioTrack : undefined,
           },
         ];
       });

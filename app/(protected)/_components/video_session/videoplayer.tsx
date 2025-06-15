@@ -14,12 +14,18 @@ export const VideoPlayer = ({ user, name, isMe }: VideoPlayerProps) => {
     if (user?.videoTrack && ref.current) {
       user.videoTrack.play(ref.current);
     }
+    if (user?.audioTrack && !isMe) {
+      user.audioTrack.play();
+    }
     return () => {
       if (user?.videoTrack && ref.current) {
         user.videoTrack.stop();
       }
+      if (user?.audioTrack && !isMe) {
+        user.audioTrack.stop();
+      }
     };
-  }, [user]);
+  }, [user, isMe]);
 
   return (
     <div
