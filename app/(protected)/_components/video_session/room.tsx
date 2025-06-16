@@ -1,14 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import AgoraRTC from "agora-rtc-sdk-ng";
 import { VideoPlayer } from "./videoplayer";
-import type {
-  ICameraVideoTrack,
-  IMicrophoneAudioTrack,
-  IRemoteVideoTrack,
-  IRemoteAudioTrack,
-  IAgoraRTCRemoteUser,
-} from "agora-rtc-sdk-ng";
 import {
   getVideoSessionTopicAndToken,
   getSessionUserNamesBySessionId,
@@ -18,13 +10,13 @@ import { useSession } from "next-auth/react";
 
 const APP_ID = process.env.NEXT_PUBLIC_AGORA_APP_ID!;
 
-const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+let client: any = null; // Will be set after dynamic import
 
 type User = {
   uid: string | number;
   name: string;
-  videoTrack?: ICameraVideoTrack | IRemoteVideoTrack;
-  audioTrack?: IMicrophoneAudioTrack | IRemoteAudioTrack;
+  videoTrack?: any;
+  audioTrack?: any;
 };
 
 type VideoRoomProps = {
@@ -38,9 +30,7 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
   const [CHANNEL, setCHANNEL] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [sessionUserNames, setSessionUserNames] = useState<string[]>([]);
-  const [localAgoraUid, setLocalAgoraUid] = useState<string | number | null>(
-    null
-  ); // <-- Store local UID
+  const [localAgoraUid, setLocalAgoraUid] = useState<string | number | null>(null);
 
   const { data: session } = useSession();
 
@@ -73,89 +63,106 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
   };
 
   useEffect(() => {
-    if (!CHANNEL || !token || sessionUserNames.length === 0) return;
-
+    let localClient: any;
+    let tracks: [any, any] = [null, null];
     let isJoined = false;
-    let tracks: [IMicrophoneAudioTrack, ICameraVideoTrack] = [null!, null!];
 
-    const handleUserPublished = async (
-      user: IAgoraRTCRemoteUser,
-      mediaType: "audio" | "video"
-    ) => {
-      await client.subscribe(user, mediaType);
-      setUsers((prev) => {
-        const remoteName =
-          sessionUserNames.find((n) => n !== session?.user?.name) ||
-          sessionUserNames[1];
-        const existing = prev.find((u) => u.uid === user.uid);
-        if (existing) {
-          return prev.map((u) =>
-            u.uid === user.uid
-              ? {
-                  ...u,
-                  videoTrack: mediaType === "video" ? user.videoTrack : u.videoTrack,
-                  audioTrack: mediaType === "audio" ? user.audioTrack : u.audioTrack,
-                }
-              : u
-          );
-        }
-        // Add new user
-        return [
-          ...prev,
-          {
-            uid: user.uid,
-            name: remoteName,
-            videoTrack: mediaType === "video" ? user.videoTrack : undefined,
-            audioTrack: mediaType === "audio" ? user.audioTrack : undefined,
-          },
-        ];
-      });
-    };
+    const setupAgora = async () => {
+      // Dynamic import so it only runs in the browser
+      const AgoraRTC = (await import("agora-rtc-sdk-ng")).default;
+      localClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+      client = localClient;
 
-    const handleUserLeft = (user: IAgoraRTCRemoteUser) => {
-      setUsers((prev) => prev.filter((u) => u.uid !== user.uid));
-    };
+      if (!CHANNEL || !token || sessionUserNames.length === 0) return;
 
-    client.on("user-published", handleUserPublished);
-    client.on("user-left", handleUserLeft);
-
-    client
-      .join(APP_ID, CHANNEL, token, null)
-      .then((uid) =>
-        Promise.all([
-          AgoraRTC.createMicrophoneAndCameraTracks(),
-          uid,
-        ])
-      )
-      .then(([[audioTrack, videoTrack], uid]) => {
-        setLocalAgoraUid(uid);
-        setLocalTracks([audioTrack, videoTrack]); // <-- Pass tracks up
-        const myName =
-          sessionUserNames.find((n) => n === session?.user?.name) ||
-          sessionUserNames[0];
+      const handleUserPublished = async (
+        user: any,
+        mediaType: "audio" | "video"
+      ) => {
+        await client.subscribe(user, mediaType);
         setUsers((prev) => {
-          if (prev.some((u) => u.uid === uid)) return prev;
+          const remoteName =
+            sessionUserNames.find((n) => n !== session?.user?.name) ||
+            sessionUserNames[1];
+          const existing = prev.find((u) => u.uid === user.uid);
+          if (existing) {
+            return prev.map((u) =>
+              u.uid === user.uid
+                ? {
+                    ...u,
+                    videoTrack: mediaType === "video" ? user.videoTrack : u.videoTrack,
+                    audioTrack: mediaType === "audio" ? user.audioTrack : u.audioTrack,
+                  }
+                : u
+            );
+          }
+          // Add new user
           return [
             ...prev,
-            { uid, name: myName, videoTrack, audioTrack },
+            {
+              uid: user.uid,
+              name: remoteName,
+              videoTrack: mediaType === "video" ? user.videoTrack : undefined,
+              audioTrack: mediaType === "audio" ? user.audioTrack : undefined,
+            },
           ];
         });
-        isJoined = true;
-        client.publish([audioTrack, videoTrack]);
-      });
+      };
+
+      const handleUserLeft = (user: any) => {
+        setUsers((prev) => prev.filter((u) => u.uid !== user.uid));
+      };
+
+      client.on("user-published", handleUserPublished);
+      client.on("user-left", handleUserLeft);
+
+      client
+        .join(APP_ID, CHANNEL, token, null)
+        .then((uid: any) =>
+          Promise.all([
+            AgoraRTC.createMicrophoneAndCameraTracks(),
+            uid,
+          ])
+        )
+        .then(([tracksArr, uid]: [any, any]) => {
+          const [microphoneTrack, cameraTrack] = tracksArr; // [audio, video]
+          setLocalAgoraUid(uid);
+          setLocalTracks([microphoneTrack, cameraTrack]);
+          const myName =
+            sessionUserNames.find((n) => n === session?.user?.name) ||
+            sessionUserNames[0];
+          setUsers((prev) => {
+            if (prev.some((u) => u.uid === uid)) return prev;
+            return [
+              ...prev,
+              { uid, name: myName, videoTrack: cameraTrack, audioTrack: microphoneTrack },
+            ];
+          });
+          isJoined = true;
+          client.publish([microphoneTrack, cameraTrack]);
+          tracks = [microphoneTrack, cameraTrack];
+        });
+
+      // Cleanup
+      return () => {
+        tracks.forEach((track) => {
+          if (track) {
+            track.stop();
+            track.close();
+          }
+        });
+        client.off("user-published", handleUserPublished);
+        client.off("user-left", handleUserLeft);
+        if (isJoined) {
+          client.unpublish(tracks).then(() => client.leave());
+        }
+      };
+    };
+
+    setupAgora();
 
     return () => {
-      tracks.forEach((track) => {
-        if (track) {
-          track.stop();
-          track.close();
-        }
-      });
-      client.off("user-published", handleUserPublished);
-      client.off("user-left", handleUserLeft);
-      if (isJoined) {
-        client.unpublish(tracks).then(() => client.leave());
-      }
+      // cleanup if needed
     };
   }, [CHANNEL, token, sessionUserNames, session?.user?.name, setLocalTracks]);
 

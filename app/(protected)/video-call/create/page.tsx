@@ -91,7 +91,6 @@ const Page = () => {
       setPendingSession(result.session);
       setSessionResult("you are in this session already.");
       setChecking(false);
-      setStep("join");
       return;
     }
 

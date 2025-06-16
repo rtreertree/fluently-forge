@@ -83,7 +83,9 @@ export const getUserVideoSession = async (userId: string) => {
 export const endVideoSession = async (sessionId: string) => {
   return db.video_session.update({
     where: { id: sessionId },
-    data: { status: "COMPLETED" },
+    data: { status: "COMPLETED",
+            endedAt: new Date(new Date().getTime() + 7 * 60 * 60 * 1000)
+     },
   });
 };
 
@@ -97,7 +99,7 @@ export const generateAndStoreToken = async (
   const now = new Date();
   now.setHours(now.getHours() + 7);
   now.setUTCHours(0, 0, 0, 0); 
-  // Find the user's active session
+
   const videoSession = await db.video_session.findFirst({
     where: {
       OR: [
@@ -107,24 +109,23 @@ export const generateAndStoreToken = async (
       status: "ACTIVE"
     },
   });
-
   if (!videoSession) {
     return null;
   }
   console.log("Found video session:", videoSession);
-  // Only generate token if startedAt is set and now >= startedAt
-  if (!videoSession.startedAt || now < videoSession.startedAt) {
-    // Not time yet
+
+
+  if (!videoSession.startedAt || now > videoSession.startedAt ) {
+    console.log(videoSession.startedAt, now);
     return null;
   }
-
   const channelName = videoSession.topic ?? 'video_session_topic';
   const expireTime = Math.floor(Date.now() / 1000) + 86400;
   const Token = RtcTokenBuilder.buildTokenWithUid(
     APP_ID,
     APP_CERTIFICATE,
     channelName,
-    Number(0),
+    0, // Use the number of active sessions as UID
     RtcRole.PUBLISHER,
     expireTime
   );
@@ -135,6 +136,7 @@ export const generateAndStoreToken = async (
   });
 
   console.log("Token generated and stored:", Token);
+  
   return Token;
 };
 
@@ -145,32 +147,6 @@ export const getVideoSessionTopicAndToken = async (): Promise<{ topic: string; t
   if (!session || !session.topic || !session.token) return null;
   return { topic: session.topic, token: session.token };
 };
-
-export const generateAndStoreTokenBySessionId = async (sessionId: string) => {
-  const videoSession = await db.video_session.findUnique({
-    where: { id: sessionId },
-  });
-  if (!videoSession) return null;
-
-  const channelName = videoSession.topic;
-  const expireTime = Math.floor(Date.now() / 1000) + 86400;
-  const token = RtcTokenBuilder.buildTokenWithUid(
-    APP_ID,
-    APP_CERTIFICATE,
-    channelName,
-    0,
-    RtcRole.PUBLISHER,
-    expireTime
-  );
-
-  await db.video_session.update({
-    where: { id: sessionId },
-    data: { token: token },
-  });
-
-  return token;
-};
-
 
 export const getUserNamesBySessionId = async (sessionId: string) => {
   const session = await db.video_session.findUnique({
@@ -261,7 +237,6 @@ export const getSessionListDates = async (sessionId: string) => {
     where: { id: sessionId },
     select: { listdate: true },
   });
-  console.log("Session listdate:", session?.listdate);
   return session?.listdate || [];
 };
 
