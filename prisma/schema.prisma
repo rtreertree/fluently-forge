@@ -118,7 +118,9 @@ model video_session{
     topic        String
     status       SessionStatus @default(PENDING) @map("status")
     token       String?
-    startedAt    DateTime?     @map("started_at")
+    listdate      String[]     @map("list_date")
+    startedAt    DateTime?    @map("started_at")
+    endedAt      DateTime?    @map("ended_at")
 
     @@map("video_sessions")
 }

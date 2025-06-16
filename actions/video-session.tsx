@@ -5,7 +5,11 @@ import { RtcTokenBuilder, RtcRole } from 'agora-access-token';
 
 
 
-export const isVideoSessionActive = async (userId: string, topic: string) => {
+export const isVideoSessionActive = async (
+  userId: string,
+  topic: string,
+  list_date: string[] 
+) => {
   const formattedTopic = topic.toUpperCase().replace(/\s+/g, "");
 
 
@@ -23,35 +27,37 @@ export const isVideoSessionActive = async (userId: string, topic: string) => {
     return "already-in-session";
   }
 
-  const topicSession = await db.video_session.findFirst({
-    where: { topic: formattedTopic },
-  });
-
-
-  if (topicSession) {
     const videoSession = await db.video_session.findFirst({
-      where: { topic: formattedTopic },
+      where: {
+        OR: [
+          { userId1: "" },
+          { userId2: "" }
+        ],
+        topic: formattedTopic,
+        status: "PENDING"
+      },
     });
     if (videoSession) {
       await db.video_session.update({
         where: { id: videoSession.id },
-        data: { userId2: userId,
-                status: "ACTIVE"  
-         }, // Set status to ACTIVE when joined
+        data: {
+          userId2: userId,
+          status: "ACTIVE"
+        },
       });
       return "joined-session";
-    }
   }
 
-  if (!topicSession) {
-    await db.video_session.create({
-      data: {
-        id: uuid(),
-        userId1: userId,
-        userId2: "",
-        topic: formattedTopic,
-      },
-    });
+  if (!videoSession) {
+await db.video_session.create({
+  data: {
+    id: uuid(),
+    userId1: userId,
+    userId2: "",
+    topic: formattedTopic,
+    listdate: list_date,
+  },
+});
     return "created-session";
   }
 
@@ -69,7 +75,7 @@ export const getUserVideoSession = async (userId: string) => {
         { userId1: userId },
         { userId2: userId }
       ],
-      status: "ACTIVE", 
+      status: "ACTIVE",
     },
   });
 };
@@ -87,28 +93,32 @@ const APP_CERTIFICATE = process.env.NEXT_PUBLIC_AGORA_APP_CERTIFICATE!;
 export const generateAndStoreToken = async (
   userId: string
 ) => {
-  // Get current time rounded to the second
-  console.log("Generating token for user:", userId);
+  // Set now to UTC+7
   const now = new Date();
-  now.setUTCHours(0, 0, 0, 0);
-
-  // Await the session fetch!
+  now.setHours(now.getHours() + 7);
+  now.setUTCHours(0, 0, 0, 0); 
+  // Find the user's active session
   const videoSession = await db.video_session.findFirst({
     where: {
-      startedAt: now,
       OR: [
         { userId1: userId },
-        { userId2: userId } 
+        { userId2: userId }
       ],
+      status: "ACTIVE"
     },
   });
-  console.log("Video session found:", videoSession,now);
+
   if (!videoSession) {
+    return null;
+  }
+  console.log("Found video session:", videoSession);
+  // Only generate token if startedAt is set and now >= startedAt
+  if (!videoSession.startedAt || now < videoSession.startedAt) {
+    // Not time yet
     return null;
   }
 
   const channelName = videoSession.topic ?? 'video_session_topic';
-
   const expireTime = Math.floor(Date.now() / 1000) + 86400;
   const Token = RtcTokenBuilder.buildTokenWithUid(
     APP_ID,
@@ -119,7 +129,6 @@ export const generateAndStoreToken = async (
     expireTime
   );
 
-  // Await the update!
   await db.video_session.update({
     where: { id: videoSession.id },
     data: { token: Token },
@@ -156,7 +165,7 @@ export const generateAndStoreTokenBySessionId = async (sessionId: string) => {
 
   await db.video_session.update({
     where: { id: sessionId },
-    data: { token :token},
+    data: { token: token },
   });
 
   return token;
@@ -206,4 +215,71 @@ export const getSessionUserNamesBySessionId = async (sessionId: string) => {
 
   return names;
 };
+
+export const getPendingSessionByTopic = async (
+  userId: string,
+  topic: string
+) => {
+  const formattedTopic = topic.toUpperCase().replace(/\s+/g, "");
+
+  // Check if user is already in an active session
+  const userSession = await db.video_session.findFirst({
+    where: {
+      OR: [
+        { userId1: userId },
+        { userId2: userId }
+      ],
+      status: "ACTIVE"
+    },
+  });
+
+  if (userSession) {
+    return { status: "already-in-session" };
+  }
+
+  // Check for a pending session for this topic
+  const videoSession = await db.video_session.findFirst({
+    where: {
+      OR: [
+        { userId1: userId },
+        { userId2: userId }
+      ],
+      topic: formattedTopic,
+      status: "PENDING"
+    },
+  });
+  if (videoSession) {
+    return { status: "pending-session", session: videoSession };
+  }
+
+  return { status: "no-session" };
+};
+
+// Get the first user's listdate for a session
+export const getSessionListDates = async (sessionId: string) => {
+  const session = await db.video_session.findUnique({
+    where: { id: sessionId },
+    select: { listdate: true },
+  });
+  console.log("Session listdate:", session?.listdate);
+  return session?.listdate || [];
+};
+
+// Set startedAt in the session when user2 joins
+export const joinSessionWithStartAt = async (
+  sessionId: string,
+  userId: string,
+  startedAt: Date, 
+) => {
+
+  return db.video_session.update({
+    where: { id: sessionId },
+    data: {
+      userId2: userId,
+      status: "ACTIVE",
+      startedAt: startedAt,
+    },
+  });
+};
+
 
