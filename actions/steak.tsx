@@ -169,7 +169,7 @@ export const getWeeklyProgress = async (userId: string) => {
     }));
 
     return weekProgress;
-};  
+};
 
 export const getTodaySessionTypeCounts = async (userId: string) => {
     // Get current date in ICT (UTC+7)

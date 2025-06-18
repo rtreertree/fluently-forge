@@ -30,7 +30,9 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
   const [CHANNEL, setCHANNEL] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [sessionUserNames, setSessionUserNames] = useState<string[]>([]);
-  const [localAgoraUid, setLocalAgoraUid] = useState<string | number | null>(null);
+  const [localAgoraUid, setLocalAgoraUid] = useState<string | number | null>(
+    null
+  );
   const [agoraUid, setAgoraUid] = useState<number | null>(null);
 
   const { data: session } = useSession();
@@ -56,7 +58,7 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
 
   // Store both UIDs and map them to names
   const [uidNameMap, setUidNameMap] = useState<{ [uid: number]: string }>({});
-  console.log("userid",userId)
+  console.log("userid", userId);
   const fetchChannelAndToken = async () => {
     const result = await getVideoSessionTopicAndToken(userId);
     console.log("fetchChannelAndToken result:", result); // LOG
@@ -70,7 +72,8 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
         // You need both UIDs from backend; assume you can get them as result.uid and result.otherUid
         // If not, fetch them from backend or generate them here
         const myName = session?.user?.name || sessionUserNames[0];
-        const otherName = sessionUserNames.find(n => n !== myName) || sessionUserNames[1];
+        const otherName =
+          sessionUserNames.find((n) => n !== myName) || sessionUserNames[1];
         // You need both UIDs here; adjust as needed
         setUidNameMap({
           [result.uid]: myName,
@@ -103,7 +106,8 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
 
         // Find the remote user's name
         const myName = session?.user?.name || sessionUserNames[0];
-        const otherName = sessionUserNames.find((n) => n !== myName) || sessionUserNames[1];
+        const otherName =
+          sessionUserNames.find((n) => n !== myName) || sessionUserNames[1];
 
         setUidNameMap((prev) => ({
           ...prev,
@@ -116,10 +120,12 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
             return prev.map((u) =>
               u.uid === user.uid
                 ? {
-                    ...u,
-                    videoTrack: mediaType === "video" ? user.videoTrack : u.videoTrack,
-                    audioTrack: mediaType === "audio" ? user.audioTrack : u.audioTrack,
-                  }
+                  ...u,
+                  videoTrack:
+                    mediaType === "video" ? user.videoTrack : u.videoTrack,
+                  audioTrack:
+                    mediaType === "audio" ? user.audioTrack : u.audioTrack,
+                }
                 : u
             );
           }
@@ -147,24 +153,24 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
       client
         .join(APP_ID, CHANNEL, token, agoraUid)
         .then((uid: any) => {
-          return Promise.all([
-            AgoraRTC.createMicrophoneAndCameraTracks(),
-            uid,
-          ]);
+          return Promise.all([AgoraRTC.createMicrophoneAndCameraTracks(), uid]);
         })
         .then(([tracksArr, uid]: [any, any]) => {
           const [microphoneTrack, cameraTrack] = tracksArr;
           setLocalAgoraUid(uid);
           setLocalTracks([microphoneTrack, cameraTrack]);
           const myName =
-            uidNameMap[uid] ||
-            session?.user?.name ||
-            sessionUserNames[0];
+            uidNameMap[uid] || session?.user?.name || sessionUserNames[0];
           setUsers((prev) => {
             if (prev.some((u) => u.uid === uid)) return prev;
             return [
               ...prev,
-              { uid, name: myName, videoTrack: cameraTrack, audioTrack: microphoneTrack },
+              {
+                uid,
+                name: myName,
+                videoTrack: cameraTrack,
+                audioTrack: microphoneTrack,
+              },
             ];
           });
           isJoined = true;
@@ -195,7 +201,15 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
         }
       }
     };
-  }, [CHANNEL, token, sessionUserNames, session?.user?.name, setLocalTracks, agoraUid, uidNameMap]);
+  }, [
+    CHANNEL,
+    token,
+    sessionUserNames,
+    session?.user?.name,
+    setLocalTracks,
+    agoraUid,
+    uidNameMap,
+  ]);
 
   // Helper to map UID to name
   const getNameForUid = (uid: number | string) => {
@@ -209,7 +223,9 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
           <VideoPlayer
             key={user.uid}
             user={user}
-            name={user.uid === localAgoraUid ? undefined : getNameForUid(user.uid)}
+            name={
+              user.uid === localAgoraUid ? undefined : getNameForUid(user.uid)
+            }
             isMe={user.uid === localAgoraUid}
           />
         ))}

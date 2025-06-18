@@ -112,7 +112,7 @@ const Page = () => {
       <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg flex flex-col items-center">
         <Form {...form}>
           <form
-            onSubmit={step === "create" ? form.handleSubmit(() => {}) : e => { e.preventDefault(); }}
+            onSubmit={step === "create" ? form.handleSubmit(() => { }) : e => { e.preventDefault(); }}
             className="space-y-8 w-full"
           >
             {sessionResult && (
