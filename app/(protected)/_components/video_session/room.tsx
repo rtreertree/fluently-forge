@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import { VideoPlayer } from "./videoplayer";
 import {
   getVideoSessionTopicAndToken,
@@ -31,19 +31,19 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
   const [token, setToken] = useState<string | null>(null);
   const [sessionUserNames, setSessionUserNames] = useState<string[]>([]);
   const [localAgoraUid, setLocalAgoraUid] = useState<string | number | null>(null);
+  const [agoraUid, setAgoraUid] = useState<number | null>(null);
 
   const { data: session } = useSession();
-
+  const userId = session?.user?.id || "";
   // Get sessionId from URL
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
 
-  // Fetch channel and token on mount
+  // Fetch channel/token and session user names in parallel on mount
   useEffect(() => {
     fetchChannelAndToken();
   }, []);
 
-  // Fetch session user names from DB
   useEffect(() => {
     const fetchNames = async () => {
       if (sessionId) {
@@ -54,36 +54,63 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
     fetchNames();
   }, [sessionId]);
 
+  // Store both UIDs and map them to names
+  const [uidNameMap, setUidNameMap] = useState<{ [uid: number]: string }>({});
+  console.log("userid",userId)
   const fetchChannelAndToken = async () => {
-    const result = await getVideoSessionTopicAndToken();
+    const result = await getVideoSessionTopicAndToken(userId);
+    console.log("fetchChannelAndToken result:", result); // LOG
     if (result) {
       setCHANNEL(result.topic);
       setToken(result.token);
+      setAgoraUid(result.uid);
+
+      // Fetch both UIDs from backend if possible
+      if (sessionUserNames.length === 2) {
+        // You need both UIDs from backend; assume you can get them as result.uid and result.otherUid
+        // If not, fetch them from backend or generate them here
+        const myName = session?.user?.name || sessionUserNames[0];
+        const otherName = sessionUserNames.find(n => n !== myName) || sessionUserNames[1];
+        // You need both UIDs here; adjust as needed
+        setUidNameMap({
+          [result.uid]: myName,
+          // [result.otherUid]: otherName, // If you have the other UID
+        });
+      }
     }
   };
 
+  // Only run setupAgora when all required values are present
   useEffect(() => {
+    if (!CHANNEL || !token || sessionUserNames.length === 0 || !agoraUid) {
+      return;
+    }
+
     let localClient: any;
     let tracks: [any, any] = [null, null];
     let isJoined = false;
 
     const setupAgora = async () => {
-      // Dynamic import so it only runs in the browser
       const AgoraRTC = (await import("agora-rtc-sdk-ng")).default;
       localClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
       client = localClient;
-
-      if (!CHANNEL || !token || sessionUserNames.length === 0) return;
 
       const handleUserPublished = async (
         user: any,
         mediaType: "audio" | "video"
       ) => {
         await client.subscribe(user, mediaType);
+
+        // Find the remote user's name
+        const myName = session?.user?.name || sessionUserNames[0];
+        const otherName = sessionUserNames.find((n) => n !== myName) || sessionUserNames[1];
+
+        setUidNameMap((prev) => ({
+          ...prev,
+          [user.uid]: otherName,
+        }));
+
         setUsers((prev) => {
-          const remoteName =
-            sessionUserNames.find((n) => n !== session?.user?.name) ||
-            sessionUserNames[1];
           const existing = prev.find((u) => u.uid === user.uid);
           if (existing) {
             return prev.map((u) =>
@@ -101,7 +128,7 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
             ...prev,
             {
               uid: user.uid,
-              name: remoteName,
+              name: otherName,
               videoTrack: mediaType === "video" ? user.videoTrack : undefined,
               audioTrack: mediaType === "audio" ? user.audioTrack : undefined,
             },
@@ -110,6 +137,7 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
       };
 
       const handleUserLeft = (user: any) => {
+        console.log("User left:", user.uid); // LOG
         setUsers((prev) => prev.filter((u) => u.uid !== user.uid));
       };
 
@@ -117,19 +145,20 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
       client.on("user-left", handleUserLeft);
 
       client
-        .join(APP_ID, CHANNEL, token, null)
-        .then((uid: any) =>
-          Promise.all([
+        .join(APP_ID, CHANNEL, token, agoraUid)
+        .then((uid: any) => {
+          return Promise.all([
             AgoraRTC.createMicrophoneAndCameraTracks(),
             uid,
-          ])
-        )
+          ]);
+        })
         .then(([tracksArr, uid]: [any, any]) => {
-          const [microphoneTrack, cameraTrack] = tracksArr; // [audio, video]
+          const [microphoneTrack, cameraTrack] = tracksArr;
           setLocalAgoraUid(uid);
           setLocalTracks([microphoneTrack, cameraTrack]);
           const myName =
-            sessionUserNames.find((n) => n === session?.user?.name) ||
+            uidNameMap[uid] ||
+            session?.user?.name ||
             sessionUserNames[0];
           setUsers((prev) => {
             if (prev.some((u) => u.uid === uid)) return prev;
@@ -141,39 +170,46 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
           isJoined = true;
           client.publish([microphoneTrack, cameraTrack]);
           tracks = [microphoneTrack, cameraTrack];
+          if (cameraTrack) cameraTrack.play(`local-player-${uid}`);
+          if (microphoneTrack) microphoneTrack.play();
+        })
+        .catch((err: any) => {
+          console.error("Failed to join Agora channel:", err);
         });
-
-      // Cleanup
-      return () => {
-        tracks.forEach((track) => {
-          if (track) {
-            track.stop();
-            track.close();
-          }
-        });
-        client.off("user-published", handleUserPublished);
-        client.off("user-left", handleUserLeft);
-        if (isJoined) {
-          client.unpublish(tracks).then(() => client.leave());
-        }
-      };
     };
 
     setupAgora();
 
+    // Cleanup function to stop and close tracks, unpublish, and leave channel
     return () => {
-      // cleanup if needed
+      tracks.forEach((track) => {
+        if (track) {
+          track.stop();
+          track.close();
+        }
+      });
+      if (client) {
+        client.removeAllListeners();
+        if (isJoined) {
+          client.unpublish(tracks).then(() => client.leave());
+        }
+      }
     };
-  }, [CHANNEL, token, sessionUserNames, session?.user?.name, setLocalTracks]);
+  }, [CHANNEL, token, sessionUserNames, session?.user?.name, setLocalTracks, agoraUid, uidNameMap]);
+
+  // Helper to map UID to name
+  const getNameForUid = (uid: number | string) => {
+    return uidNameMap[uid as number] || "Unknown";
+  };
 
   return (
     <div className="flex justify-center items-center">
       <div className="flex gap-8">
-        {users.map((user, idx) => (
+        {users.map((user) => (
           <VideoPlayer
             key={user.uid}
             user={user}
-            name={user.uid === localAgoraUid ? undefined : user.name}
+            name={user.uid === localAgoraUid ? undefined : getNameForUid(user.uid)}
             isMe={user.uid === localAgoraUid}
           />
         ))}

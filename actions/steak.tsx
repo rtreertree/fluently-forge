@@ -20,6 +20,22 @@ export const getDailyStreak = async (userId: string) => {
         select: { createdAt: true },
     });
 
+    // --- NEW LOGIC: Check if there is no session in the last 24 hours ---
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const hasRecentSession = sessions.some(
+        (s) => new Date(s.createdAt) > twentyFourHoursAgo
+    );
+    if (!hasRecentSession) {
+        // No session in last 24 hours, reset streak to today
+        await db.user.update({
+            where: { id: userId },
+            data: { streak: new Date() },
+        });
+        return 0;
+    }
+    // --- END NEW LOGIC ---
+
     if (!sessions || sessions.length === 0) {
         // Optionally update streak date to today if no sessions
         await db.user.update({

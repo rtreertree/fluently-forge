@@ -26,6 +26,9 @@ const MeetingPage = () => {
     fetchSession();
   }, [session?.user?.id]);
 
+  useEffect(() => {
+  }, [localTracks]);
+
   const handleEndSession = async () => {
     if (!userSession?.id) return;
     setIsEnding(true);
@@ -36,18 +39,18 @@ const MeetingPage = () => {
 
   // Toggle mic
   const handleToggleMic = () => {
-    if (localTracks[0]) {
-      localTracks[0].setEnabled(!micOn);
-      setMicOn(!micOn);
-    }
+    setMicOn((prev) => {
+      if (localTracks[0]) localTracks[0].setEnabled(!prev);
+      return !prev;
+    });
   };
 
   // Toggle camera
   const handleToggleCam = () => {
-    if (localTracks[1]) {
-      localTracks[1].setEnabled(!camOn);
-      setCamOn(!camOn);
-    }
+    setCamOn((prev) => {
+      if (localTracks[1]) localTracks[1].setEnabled(!prev);
+      return !prev;
+    });
   };
 
   return (

@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import {
   getPendingSessionByTopic,
-  generateAndStoreToken,
+  generateTokensForBothUsers,
   getUserVideoSession,
 } from "@/actions/video-session";
 import CreateSessionForm from "@/app/(protected)/_components/video_session/createsessionForm";
@@ -93,17 +93,18 @@ const Page = () => {
       setChecking(false);
       return;
     }
+    if (result.status === "join-sesion" && result.session) {
+      setPendingSession(result.session);
+      setSessionResult("You can join this session.");
+      setStep("join");
+      setChecking(false);
+      return;
+    }
 
     setStep("create");
     setChecking(false);
   };
 
-  // Handler for the single Join Session button
-  const handleJoinSession = async () => {
-    if (!pendingSession) return;
-    await generateAndStoreToken(session.data?.user?.id || "");
-    window.location.href = `/video-call/meeting?sessionId=${pendingSession.id}`;
-  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-5 bg-gray-50">
@@ -180,7 +181,7 @@ const Page = () => {
           <Button
             className="w-full"
             onClick={async () => {
-              await generateAndStoreToken(session.data?.user?.id || "");
+              await generateTokensForBothUsers(session.data?.user?.id || "");
               window.location.href = `/video-call/meeting?sessionId=${userSession.id}`;
             }}
           >

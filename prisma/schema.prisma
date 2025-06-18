@@ -117,7 +117,8 @@ model video_session{
     createdAt    DateTime      @default(now()) @map("created_at")
     topic        String
     status       SessionStatus @default(PENDING) @map("status")
-    token       String?
+    tokenuser1       String?
+    tokenuser2       String?
     listdate      String[]     @map("list_date")
     startedAt    DateTime?    @map("started_at")
     endedAt      DateTime?    @map("ended_at")
