@@ -14,6 +14,7 @@ import {
 } from "@/actions/video-session";
 import CreateSessionForm from "@/app/(protected)/_components/video_session/createsessionForm";
 import JoinSessionForm from "@/app/(protected)/_components/video_session/JoinSessionForm";
+import Loader from "@/components/suspend/loading";
 
 const timeRangeSchema = z.object({
   startDate: z.string().optional(),
@@ -105,6 +106,11 @@ const Page = () => {
     setChecking(false);
   };
 
+  if (checking) {
+    return (
+        <Loader text="loading" />
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-5 bg-gray-50">

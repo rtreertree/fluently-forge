@@ -19,15 +19,41 @@ export const getDailyStreak = async (userId: string) => {
         orderBy: { createdAt: "asc" },
         select: { createdAt: true },
     });
+    const video_sessions = await db.video_session.findMany({
+        where: {
+            OR: [
+                { userId1: userId },
+                { userId2: userId }
+            ],
+            status: "COMPLETED",
+        },
+        orderBy: { startedAt: "asc" },
+        select: { startedAt: true },
+    });
 
-    // --- NEW LOGIC: Check if there is no session in the last 24 hours ---
+    // Combine sessions and video_sessions into one array of dates
+    const allSessionDates = [
+        ...sessions.map(s => ({ date: new Date(s.createdAt) })),
+        ...video_sessions
+            .filter(v => v.startedAt)
+            .map(v => ({ date: new Date(v.startedAt as Date) }))
+    ];
+
+    if (!allSessionDates || allSessionDates.length === 0) {
+        await db.user.update({
+            where: { id: userId },
+            data: { streak: new Date() },
+        });
+        return 0;
+    }
+
+    // --- Check if there is no session in the last 24 hours ---
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const hasRecentSession = sessions.some(
-        (s) => new Date(s.createdAt) > twentyFourHoursAgo
+    const hasRecentSession = allSessionDates.some(
+        (s) => s.date > twentyFourHoursAgo
     );
     if (!hasRecentSession) {
-        // No session in last 24 hours, reset streak to today
         await db.user.update({
             where: { id: userId },
             data: { streak: new Date() },
@@ -36,25 +62,28 @@ export const getDailyStreak = async (userId: string) => {
     }
     // --- END NEW LOGIC ---
 
-    if (!sessions || sessions.length === 0) {
-        // Optionally update streak date to today if no sessions
-        await db.user.update({
-            where: { id: userId },
-            data: { streak: new Date() },
-        });
-        return 0;
-    }
-
-    // Convert sessions to start-of-day in ICT (UTC+7)
-    const sessionDates = sessions.map((s) => {
-        const utc = new Date(s.createdAt);
-        // Convert to UTC+7 (ICT)
-        const ictTime = new Date(utc.getTime() + 7 * 60 * 60 * 1000);
-        // Normalize to start of the ICT day
-        ictTime.setUTCHours(0, 0, 0, 0);
-        return ictTime;
-    });
-
+    // Convert all session dates to start-of-day in ICT (UTC+7)
+    const sessionDates = [
+        // sessions.createdAt is UTC, convert to ICT and normalize
+        ...sessions.map((s) => {
+            const utc = s.createdAt;
+            const ictTime = new Date(utc.getTime() + 7 * 60 * 60 * 1000);
+            ictTime.setUTCHours(0, 0, 0, 0);
+            return ictTime;
+        }),
+        // video_sessions.startedAt is already ICT, just normalize to start of day
+        ...video_sessions
+            .filter(v => v.startedAt)
+            .map(v => {
+                const utc = new Date(v.startedAt as Date);
+                utc.setUTCHours(0, 0, 0, 0);
+                return utc;
+            })
+    ];
+    console.log("session", sessions)
+    console.log("video", video_sessions)
+    console.log("All Session Dates:", allSessionDates);
+    console.log("Session Dates:", sessionDates);
     // Remove duplicate days (only one session per day counts)
     const uniqueDates = Array.from(
         new Set(sessionDates.map((d) => d.getTime()))
@@ -62,16 +91,15 @@ export const getDailyStreak = async (userId: string) => {
 
     // Sort chronologically
     uniqueDates.sort((a, b) => a.getTime() - b.getTime());
-    // console.log(uniqueDates)
+
     // If user's streak is before the first activity, update it
     if (user?.streak) {
         const streakStart = new Date(user.streak);
         streakStart.setUTCHours(0, 0, 0, 0);
         if (streakStart.getTime() < uniqueDates[0].getTime()) {
-            // Update streak to first activity date (or today, as you wish)
             await db.user.update({
                 where: { id: userId },
-                data: { streak: new Date() }, // set to today
+                data: { streak: new Date() },
             });
             return 0;
         }
@@ -85,22 +113,18 @@ export const getDailyStreak = async (userId: string) => {
         filteredDates = uniqueDates.filter(
             (date) => date.getTime() >= streakStart.getTime()
         );
-        // Add the streak start date if not present
-
-        // Sort again to ensure order
         filteredDates.sort((a, b) => a.getTime() - b.getTime());
     }
 
     // Check for missing days (break in streak)
     for (let i = 1; i < filteredDates.length; i++) {
-        const prev = filteredDates[i];
-        const curr = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);;
+        const prev = filteredDates[i - 1];
+        const curr = filteredDates[i];
         const diff = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
         if (diff > 1) {
-            // Streak broken, update streak to latest activity date
             await db.user.update({
                 where: { id: userId },
-                data: { streak: curr }, // set to latest activity date
+                data: { streak: curr },
             });
             return 0;
         }
@@ -135,7 +159,8 @@ export const getWeeklyProgress = async (userId: string) => {
     sunday.setDate(monday.getDate() + 6);
     sunday.setHours(23, 59, 59, 999);
 
-    const weeklySessions = await db.sessions.findMany({
+    // Fetch both session types
+    const sessions = await db.sessions.findMany({
         where: {
             userId: userId,
             createdAt: {
@@ -146,21 +171,42 @@ export const getWeeklyProgress = async (userId: string) => {
         select: { createdAt: true },
     });
 
-    // Normalize session dates to start of ICT day (UTC+7)
-    const sessionDays = new Set(
-        weeklySessions.map((s) => {
+    const video_sessions = await db.video_session.findMany({
+        where: {
+            OR: [
+                { userId1: userId },
+                { userId2: userId }
+            ],
+            status: "COMPLETED",
+            startedAt: {
+                gte: monday,
+                lte: sunday,
+            },
+        },
+        select: { startedAt: true },
+    });
+
+    // Normalize all session dates to start of ICT day (UTC+7)
+    const allSessionDates = [
+        ...sessions.map((s) => {
             const utc = new Date(s.createdAt);
-            let ict = new Date(utc.getTime() + 7 * 60 * 60 * 1000);
-            if (ict.getUTCHours() >= 24) {
-                ict.setUTCDate(ict.getUTCDate() + 1);
-                ict.setUTCHours(0, 0, 0, 0);
-            } else {
-                ict.setUTCHours(0, 0, 0, 0);
-            }
-            // Use YYYY-MM-DD string for comparison
+            const ict = new Date(utc.getTime() + 7 * 60 * 60 * 1000);
+            ict.setUTCHours(0, 0, 0, 0);
             return ict.toISOString().slice(0, 10);
-        })
-    );
+        }),
+        ...video_sessions
+            .filter(v => v.startedAt)
+            .map((v) => {
+                const ict = new Date(v.startedAt as Date);
+                ict.setHours(0, 0, 0, 0);
+                // Convert to ISO string and take date part
+                return new Date(ict.getTime() - ict.getTimezoneOffset() * 60000)
+                    .toISOString()
+                    .slice(0, 10);
+            }),
+    ];
+
+    const sessionDays = new Set(allSessionDates);
 
     // Build result for each day of the week
     const weekProgress = weekDays.map((date) => ({
@@ -197,12 +243,24 @@ export const getTodaySessionTypeCounts = async (userId: string) => {
         },
         select: { type: true },
     });
-
+    const video_sessions = await db.video_session.findMany({
+        where: {
+            OR: [
+                { userId1: userId },
+                { userId2: userId }
+            ],
+            status: "COMPLETED",
+            startedAt: {
+                gte: utcStart,
+                lte: utcEnd,
+            },
+        }
+    });
     // Count by type
     const counts: Record<string, number> = {};
     sessions.forEach((s) => {
         counts[s.type] = (counts[s.type] || 0) + 1;
     });
-    console.log("Today's session type counts:", counts);
+    counts["VIDEO_CALL"] = video_sessions.length;
     return counts;
 };

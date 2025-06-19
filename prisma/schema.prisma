@@ -40,7 +40,6 @@ enum LogType {
 enum SessionType {
     SMALLTALK
     SCENARIO_CREATION
-    DICTIONARY
     MONOLOGUE
 }
 
