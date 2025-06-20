@@ -12,6 +12,7 @@ import {
   generateTokensForBothUsers,
   getUserVideoSession,
 } from "@/actions/video-session";
+import { validateTopic } from "@/actions/openaiHandler";
 import CreateSessionForm from "@/app/(protected)/_components/video_session/createsessionForm";
 import JoinSessionForm from "@/app/(protected)/_components/video_session/JoinSessionForm";
 import Loader from "@/components/suspend/loading";
@@ -85,12 +86,20 @@ const Page = () => {
       setChecking(false);
       return;
     }
+
+    // Use OpenAI validation for topic
+    const isValid = await validateTopic(topic, "MONOLOGUE"); // or the correct SessionType
+    if (!isValid) {
+      setSessionResult("This topic is not allowed. Please choose another topic.");
+      setChecking(false);
+      return;
+    }
+
     const result = await getPendingSessionByTopic(userId, topic);
     setServerStatus(result.status);
 
     if (result.status === "already-in-session") {
       setSessionResult("You are already in an active session.");
-      // Do NOT setPendingSession or setStep here
       setChecking(false);
       return;
     }
