@@ -37,7 +37,9 @@ const JoinSessionForm = ({
   useEffect(() => {
     if (pendingSession?.id) {
       getSessionListDates(pendingSession.id).then((dates) => {
-        setListDates(Array.isArray(dates) ? dates : []);
+        // Filter out "T-T"
+        const filteredDates = Array.isArray(dates) ? dates.filter(d => d !== "T-T") : [];
+        setListDates(filteredDates);
         setSelectedPeriod(""); // Reset selection on session change
       });
     } else {

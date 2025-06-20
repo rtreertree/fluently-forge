@@ -17,6 +17,13 @@ import JoinSessionForm from "@/app/(protected)/_components/video_session/JoinSes
 import Loader from "@/components/suspend/loading";
 
 const timeRangeSchema = z.object({
+  startDate: z.string().min(1, "Start date is required"),
+  startTime: z.string().min(1, "Start time is required"),
+  endDate: z.string().min(1, "End date is required"),
+  endTime: z.string().min(1, "End time is required"),
+});
+
+const optionalTimeRangeSchema = z.object({
   startDate: z.string().optional(),
   startTime: z.string().optional(),
   endDate: z.string().optional(),
@@ -25,9 +32,9 @@ const timeRangeSchema = z.object({
 
 const videoCallSchema = z.object({
   prompt: z.string().min(1, "Topic is required").max(80, "Your prompt must be less than 80 characters"),
-  priority1: timeRangeSchema,
-  priority2: timeRangeSchema,
-  priority3: timeRangeSchema,
+  priority1: timeRangeSchema, // mandatory
+  priority2: optionalTimeRangeSchema.optional(), // optional
+  priority3: optionalTimeRangeSchema.optional(), // optional
 });
 
 const Page = () => {
