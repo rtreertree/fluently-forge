@@ -1,15 +1,14 @@
-version: '2.4'
 
 services:
   server:
-    build:
-      image: rtreertree/fluently-forge:latest
+    image: rtreertree/fluently-forge:latest
     environment:
       NODE_ENV: production
     env_file:
       - .env
     ports:
       - 3000:3000
+    restart: always
 
   minio:
     image: minio/minio:latest
