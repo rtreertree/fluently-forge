@@ -3,7 +3,7 @@ version: '2.4'
 services:
   server:
     build:
-      context: .
+      image: rtreertree/fluently-forge:latest
     environment:
       NODE_ENV: production
     env_file:
