@@ -2,7 +2,7 @@
 
 import { minioClient, BUCKET_NAME } from "@/lib/files";
 import { ReadStream } from "fs";
-import { PassThrough } from "stream";
+import { PassThrough, Readable } from "stream";
 import FormData from 'form-data';
 
 
@@ -54,10 +54,10 @@ export async function uploadSession(sessionUpload: SessionUploadInterface) {
 };
 
 
-export async function getRecordings(sessionId: string) {
+export async function getRecordings(sessionId: string, role: "agent" | "user"): Promise<Readable | null> {
     try {
         let size = 0
-        const dataStream = await minioClient.getObject(BUCKET_NAME, `${sessionId}/merged.wav`)
+        const dataStream = await minioClient.getObject(BUCKET_NAME, `${sessionId}/${role}.wav`)
         dataStream.on('data', function (chunk) {
             size += chunk.length
         })

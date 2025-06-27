@@ -2,41 +2,39 @@
 
 import { startAssessment } from "@/actions/assessment";
 import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
-import ChatBoxComponent from "../../_components/session/assessment/chatbox";
+import { useEffect, useState } from "react";
+import ChatBoxComponent from "@/app/(protected)/_components/session/assessment/chatbox";
+import { agentPlaceholder, userPlaceholder } from "@/actions/placeholder";
+import { MergedTranscription, mergeTranscriptions } from "@/actions/azureHandler";
 
 export default function SessionDetails() {
     const searchParams = useSearchParams();
     const id = searchParams.get("id");
+    const [transcription, setTranscription] = useState<MergedTranscription[]>();
 
-    useEffect( () => {
+    useEffect(() => {
         if (!id) {
             window.location.href = "/session/create";
             return;
         }
         console.log("Fetching session details for ID:", id);
+
+        mergeTranscriptions(agentPlaceholder, userPlaceholder).then((merged) => {
+            setTranscription(merged);
+        });
     }, [id]);
 
     console.log("Session ID:", id);
 
-    const onClickTest = async () => {
-        await startAssessment( "54b424ff-ac58-434d-96e5-5a3457ea03d2");
-        console.log("Button clicked to view session details");
-    }
-
-
     return (
-        <div>
-            {/* Create centered button */}
-            <div className="flex justify-center mt-4">
-                <button
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    onClick={onClickTest}
-                >
-                    View Session Details
-                </button>
-                <ChatBoxComponent />
-            </div>
+        <div className="flex flex-col items-center justify-center">
+            {
+                !transcription ? (
+                    <div className="text-center text-gray-500">Loading session details...</div>
+                ) : (
+                    <ChatBoxComponent messages={transcription}/>
+                )
+            }
         </div>
     );
 }
