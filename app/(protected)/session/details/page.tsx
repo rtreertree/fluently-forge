@@ -1,11 +1,11 @@
 "use client";
 
-import { startAssessment } from "@/actions/assessment";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import ChatBoxComponent from "@/app/(protected)/_components/session/assessment/chatbox";
 import { agentPlaceholder, userPlaceholder } from "@/actions/placeholder";
 import { MergedTranscription, mergeTranscriptions } from "@/actions/azureHandler";
+import { assessPronunciation } from "@/actions/assessment";
 
 export default function SessionDetails() {
     const searchParams = useSearchParams();
@@ -26,6 +26,11 @@ export default function SessionDetails() {
 
     console.log("Session ID:", id);
 
+    const onTestAssessment = async () => {
+        const words = await assessPronunciation("Hello world, this is a test.", undefined);
+        console.log("Pronunciation Assessment Words:", words);
+    }
+
     return (
         <div className="flex flex-col items-center justify-center">
             {
@@ -35,6 +40,7 @@ export default function SessionDetails() {
                     <ChatBoxComponent messages={transcription}/>
                 )
             }
+            <button onClick={onTestAssessment}>testAssessment</button>
         </div>
     );
 }

@@ -122,14 +122,3 @@ export const getMonologueQuestion = async (topic: string) => {
     }
     return parsedResponse;
 };
-
-// export const transcribeAudio = async (audio: Readable) => {
-//     const transcription = await openaiClient.audio.transcriptions.create({
-//         file: audio as any,
-//         model: "gpt-4o-transcribe",
-//         response_format: "text",
-//         prompt: "The following conversation is a lecture about the recent developments around OpenAI, GPT-4.5 and the future of AI.",
-//     });
-
-//     return transcription
-// }

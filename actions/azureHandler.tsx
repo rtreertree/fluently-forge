@@ -91,7 +91,6 @@ export const transcribeAudio = async (audioBuffer: Buffer) => {
 
     form.append('definition', JSON.stringify({
         locales: ["en-US"],
-        // diarization: { maxSpeakers: 2, enabled: true }
     }));
 
     const result = await axios.post(BASE_URL, form, {
@@ -124,6 +123,8 @@ export const transcribeAudioMerged = async (sessionId: string) => {
         transcribeAudio(userBuffer),
         transcribeAudio(agentBuffer)
     ]);
+
+    
 
     const mergedTranscription = await mergeTranscriptions(agentTranscription, userTranscription);
     return mergedTranscription;
