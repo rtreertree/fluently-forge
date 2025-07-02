@@ -1,9 +1,13 @@
 "use server";
 
-import FormData from 'form-data';
-import axios from 'axios';
+import FormData, { Readable } from 'form-data';
 import { getRecordings } from './fileHandler';
-import { readableToBuffer } from '@/lib/audio';
+import { audioBufferToNodeBuffer, audioBufferToWavBlob, bufferToAudioBuffer, cutAudioBuffer, readableToBuffer, wavBufferToAudioBuffer } from '@/lib/audio';
+import { assessPronunciation, PronunciationAssessmentWord } from './assessment';
+import fs from 'fs';
+import audioBufferToWav from 'audiobuffer-to-wav';
+import wav from 'node-wav';
+
 
 export interface TranscriptionResponse {
     offsetMilliseconds: number;
@@ -15,7 +19,7 @@ export interface TranscriptionResponse {
         offsetMilliseconds: number;
         durationMilliseconds: number;
         text: string;
-    }
+    }[]
 }
 
 export interface MergedTranscription {
@@ -63,7 +67,7 @@ export const mergeTranscriptions = async (
 }
 
 const getAzureConfig = () => {
-    const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_ID;
+    const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY;
     const REGION = process.env.AZURE_REGION;
 
     if (!SUBSCRIPTION_KEY || !REGION) {
@@ -77,55 +81,132 @@ const getAzureConfig = () => {
 }
 
 
+
 export const transcribeAudio = async (audioBuffer: Buffer) => {
     const { SUBSCRIPTION_KEY, REGION } = getAzureConfig();
-    const BASE_URL = `https://azureai-services-fluently.cognitiveservices.azure.com/speechtotext/transcriptions:transcribe?api-version=2024-11-15`;
+    const BASE_URL = `https://${REGION}.api.cognitive.microsoft.com/speechtotext/transcriptions:transcribe?api-version=2024-11-15`;
+
     console.log("Transcribing audio with Azure Speech Service...");
+    // console.log("Audio buffer size:", audioBuffer);
 
-    // Prepare the multipart form
+    const blob = new Blob([audioBuffer], { type: 'audio/wav' });
+
+    // Create multipart form
     const form = new FormData();
-    form.append('audio', audioBuffer, {
-        filename: 'audio.wav', // or whatever type you expect
-        contentType: 'audio/wav', // adjust if using mp3 or other type
-    });
-
+    form.append('audio', fs.createReadStream("tmp/testaudio.wav")
+    );
     form.append('definition', JSON.stringify({
         locales: ["en-US"],
     }));
 
-    const result = await axios.post(BASE_URL, form, {
-        headers: {
-            'Ocp-Apim-Subscription-Key': "4PZfHAIHsw5qL2GuLidJcw0FStySukIU9nxWGEYZJEl3z3s6r869JQQJ99BFACqBBLyXJ3w3AAAEACOGQ4uM",
-            'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`,
-        }
-    })
+    console.log("Form data: ", form.getHeaders());
 
-    if (result.status !== 200) {
-        throw new Error(`Failed to start transcription: ${result.statusText}`);
+    const response = await fetch(BASE_URL, {
+        method: 'POST',
+        headers: {
+            'Ocp-Apim-Subscription-Key': SUBSCRIPTION_KEY,
+            'Accept': 'application/json',
+            ...form.getHeaders(),
+        },
+        // Cast form to any to satisfy TypeScript, as fetch in Node.js expects a ReadableStream or Buffer
+        body: form as any,
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response from Azure:", response.body);
+        throw new Error(`Failed to start transcription: ${response.statusText}`);
     }
 
-    return result.data.phrases as TranscriptionResponse[];
+    const result = await response.json();
+    return result.phrases as TranscriptionResponse[];
+}
+async function assessAllSegments(
+    sourceBuffer: AudioBuffer,
+    segments: TranscriptionResponse[]
+): Promise<PronunciationAssessmentWord[][]> {
+    // Map each to a promise
+    const promises = segments.map(async seg => {
+        const cutBuf = cutAudioBuffer(sourceBuffer, seg.offsetMilliseconds, seg.durationMilliseconds);
+        const nodeBuf = audioBufferToNodeBuffer(cutBuf);
+        // Run pronunciation assessment
+        return assessPronunciation(seg.text, nodeBuf);
+    });
+    // Wait for all to finish
+    return Promise.all(promises);
 }
 
-export const transcribeAudioMerged = async (sessionId: string) => {
-    const userRecordings = await getRecordings(sessionId, "user");
-    const agentRecordings = await getRecordings(sessionId, "agent");
+export const transcribeAudioMerged = async (sessionId: string)=> {
+    const readable = await getRecordings(sessionId, "agent");
 
-    if (!userRecordings || !agentRecordings) {
-        throw new Error("Failed to retrieve recordings for user or agent.");
+    if (!readable) {
+        throw new Error("Failed to retrieve agent recording.");
     }
 
-    const userBuffer = await readableToBuffer(userRecordings);
-    const agentBuffer = await readableToBuffer(agentRecordings);
+    console.log("Transcribing audio for session ID:", sessionId);
 
-    // Transcribe both user and agent audio
-    const [userTranscription, agentTranscription] = await Promise.all([
-        transcribeAudio(userBuffer),
-        transcribeAudio(agentBuffer)
-    ]);
+
+    console.log("Agent recording retrieved successfully. now converting to buffer...");
+    const audioBuffer = await readableToBuffer(readable);
+    console.log("Audio buffer size:", audioBuffer.length);
+    console.log("ASCII: ", audioBuffer.toString('ascii', 0, 16));
+    // get Sample Rate
+    const wavData = wav.decode(audioBuffer);
+    const sampleRate = wavData.sampleRate;
+    console.log("Sample Rate:", sampleRate);
+
+
+    const transcription = await transcribeAudio(audioBuffer);
+    console.log("Transcription result:", transcription);
+}
+
+// export const transcribeAudioMerged = async (sessionId: string) => {
+
+//     console.log("Transcribing audio for session ID:", sessionId);
+//     const userRecordings = await getRecordings(sessionId, "user");
+//     const agentRecordings = await getRecordings(sessionId, "agent");
+
+//     if (!userRecordings || !agentRecordings) {
+//         throw new Error("Failed to retrieve recordings for user or agent.");
+//     }
 
     
+//     console.log("User and agent recordings retrieved successfully. now converting to buffers...");
 
-    const mergedTranscription = await mergeTranscriptions(agentTranscription, userTranscription);
-    return mergedTranscription;
-}
+//     const userBuffer = await readableToBuffer(userRecordings);
+//     const agentBuffer = await readableToBuffer(agentRecordings);
+
+//     console.log(userBuffer.subarray(0, 16));
+//     console.log("User audio buffer size:", userBuffer.length);
+//     console.log("Agent audio buffer size:", agentBuffer.length);
+
+//     console.log("ASCII: ", userBuffer.toString('ascii', 0, 16))
+
+    // const audioContext = new AudioContext();
+    // const audioBuffer = await bufferToAudioBuffer(agentBuffer);
+    // const wavBuffer = audioBufferToWav(audioBuffer);
+
+    // fs.writeFile("tmp/agent.wav", Buffer.from(wavBuffer), (err) => {
+    //     if (err) {
+    //         console.error("Error writing user audio buffer to file:", err);
+    //     } else {
+    //         console.log("User audio buffer written to tmp/user.wav");
+    //     }
+    // });
+
+    // // Transcribe both user and agent audio
+    // const [userTranscription, agentTranscription] = await Promise.all([
+    //     transcribeAudio(userBuffer),
+    //     transcribeAudio(agentBuffer)
+    // ]);
+
+    // const audioContext = new AudioContext();
+    // const userAudioBuffer = await bufferToAudioBuffer(userBuffer, audioContext);
+
+    // const wordResults = await assessAllSegments(userAudioBuffer, userTranscription);
+    // console.log("User word results:", wordResults);
+
+
+    // const mergedTranscription = await mergeTranscriptions(agentTranscription, userTranscription);
+    // return mergedTranscription;
+// }

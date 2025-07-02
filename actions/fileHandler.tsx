@@ -4,6 +4,7 @@ import { minioClient, BUCKET_NAME } from "@/lib/files";
 import { ReadStream } from "fs";
 import { PassThrough, Readable } from "stream";
 import FormData from 'form-data';
+import fs from 'fs';
 
 
 
@@ -64,6 +65,7 @@ export async function getRecordings(sessionId: string, role: "agent" | "user"): 
         dataStream.on('error', function (err) {
             console.log(err)
         })
+
         return dataStream;;
     } catch (error) {
         return null;
