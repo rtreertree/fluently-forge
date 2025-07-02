@@ -67,8 +67,9 @@ export const mergeTranscriptions = async (
 }
 
 const getAzureConfig = () => {
-    const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY;
+    const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY2;
     const REGION = process.env.AZURE_REGION;
+    const STT_ENDPOINT = process.env.AZURE_STT_ENDPOINT;
 
     if (!SUBSCRIPTION_KEY || !REGION) {
         throw new Error("Azure subscription ID or region is not set in environment variables.");
@@ -76,25 +77,25 @@ const getAzureConfig = () => {
 
     return {
         SUBSCRIPTION_KEY,
-        REGION
+        REGION,
+        STT_ENDPOINT
     };
 }
 
 
 
 export const transcribeAudio = async (audioBuffer: Buffer) => {
-    const { SUBSCRIPTION_KEY, REGION } = getAzureConfig();
-    const BASE_URL = `https://${REGION}.api.cognitive.microsoft.com/speechtotext/transcriptions:transcribe?api-version=2024-11-15`;
+    const { SUBSCRIPTION_KEY, REGION, STT_ENDPOINT } = getAzureConfig();
+    const BASE_URL = `${STT_ENDPOINT}/speechtotext/transcriptions:transcribe?api-version=2024-11-15`;
 
     console.log("Transcribing audio with Azure Speech Service...");
-    // console.log("Audio buffer size:", audioBuffer);
-
-    const blob = new Blob([audioBuffer], { type: 'audio/wav' });
 
     // Create multipart form
     const form = new FormData();
-    form.append('audio', fs.createReadStream("tmp/testaudio.wav")
-    );
+    form.append('audio', audioBuffer, {
+        filename: 'audio.wav',
+        contentType: 'audio/wav'
+    });
     form.append('definition', JSON.stringify({
         locales: ["en-US"],
     }));
@@ -114,7 +115,7 @@ export const transcribeAudio = async (audioBuffer: Buffer) => {
 
     if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error response from Azure:", response.body);
+        console.error("Error response from Azure:", errorText);
         throw new Error(`Failed to start transcription: ${response.statusText}`);
     }
 
@@ -144,17 +145,8 @@ export const transcribeAudioMerged = async (sessionId: string)=> {
     }
 
     console.log("Transcribing audio for session ID:", sessionId);
-
-
     console.log("Agent recording retrieved successfully. now converting to buffer...");
     const audioBuffer = await readableToBuffer(readable);
-    console.log("Audio buffer size:", audioBuffer.length);
-    console.log("ASCII: ", audioBuffer.toString('ascii', 0, 16));
-    // get Sample Rate
-    const wavData = wav.decode(audioBuffer);
-    const sampleRate = wavData.sampleRate;
-    console.log("Sample Rate:", sampleRate);
-
 
     const transcription = await transcribeAudio(audioBuffer);
     console.log("Transcription result:", transcription);
