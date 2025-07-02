@@ -2,7 +2,7 @@
 import * as sdk from "microsoft-cognitiveservices-speech-sdk";
 import * as fs from "fs";
 
-interface PronunciationAssessmentWord {
+export interface PronunciationAssessmentWord {
     Word: string;
     PronunciationAssessment: {
         AccuracyScore: number;
@@ -10,7 +10,7 @@ interface PronunciationAssessmentWord {
     };
 }
 
-interface PronunciationAssessmentResult {
+export interface PronunciationAssessmentResult {
     AccuracyScore: number;
     FluencyScore: number;
     ProsodyScore: number;
@@ -18,7 +18,7 @@ interface PronunciationAssessmentResult {
     PronScore: number;
 }
 
-interface PronunciationAssessmentDetailResult {
+export interface PronunciationAssessmentDetailResult {
     Confidence: number;
     Lexical: string;
     MaskedITN: string;

@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import ChatBoxComponent from "@/app/(protected)/_components/session/assessment/chatbox";
 import { agentPlaceholder, userPlaceholder } from "@/actions/placeholder";
-import { MergedTranscription, mergeTranscriptions } from "@/actions/azureHandler";
+import { MergedTranscription, mergeTranscriptions, transcribeAudioMerged } from "@/actions/azureHandler";
 import { assessPronunciation } from "@/actions/assessment";
 
 export default function SessionDetails() {
@@ -27,7 +27,7 @@ export default function SessionDetails() {
     console.log("Session ID:", id);
 
     const onTestAssessment = async () => {
-        const words = await assessPronunciation("Hello world, this is a test.", undefined);
+        const words = await transcribeAudioMerged("54b424ff-ac58-434d-96e5-5a3457ea03d2");
         console.log("Pronunciation Assessment Words:", words);
     }
 
