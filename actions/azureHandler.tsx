@@ -8,6 +8,7 @@ import fs from 'fs';
 import audioBufferToWav from 'audiobuffer-to-wav';
 import wav from 'node-wav';
 
+import axios from 'axios';
 
 export interface TranscriptionResponse {
     offsetMilliseconds: number;
@@ -90,37 +91,30 @@ export const transcribeAudio = async (audioBuffer: Buffer) => {
 
     console.log("Transcribing audio with Azure Speech Service...");
 
-    // Create multipart form
     const form = new FormData();
     form.append('audio', audioBuffer, {
         filename: 'audio.wav',
-        contentType: 'audio/wav'
+        contentType: 'audio/wav',
     });
+
     form.append('definition', JSON.stringify({
         locales: ["en-US"],
     }));
 
-    console.log("Form data: ", form.getHeaders());
-
-    const response = await fetch(BASE_URL, {
-        method: 'POST',
+    const result = await axios.post(BASE_URL, form, {
         headers: {
             'Ocp-Apim-Subscription-Key': SUBSCRIPTION_KEY,
-            'Accept': 'application/json',
-            ...form.getHeaders(),
-        },
-        // Cast form to any to satisfy TypeScript, as fetch in Node.js expects a ReadableStream or Buffer
-        body: form as any,
-    });
+            'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`,
+        }
+    }).catch((err) => {
+        console.error(err.response)
+    })
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response from Azure:", errorText);
-        throw new Error(`Failed to start transcription: ${response.statusText}`);
+    if (!result || !result.data || !result.data.phrases) {
+        throw new Error("Failed to transcribe audio. No phrases returned from Azure.");
     }
 
-    const result = await response.json();
-    return result.phrases as TranscriptionResponse[];
+    return result.data.phrases as TranscriptionResponse[];
 }
 async function assessAllSegments(
     sourceBuffer: AudioBuffer,
@@ -138,7 +132,7 @@ async function assessAllSegments(
 }
 
 export const transcribeAudioMerged = async (sessionId: string)=> {
-    const readable = await getRecordings(sessionId, "agent");
+    const readable = await getRecordings(sessionId, "user");
 
     if (!readable) {
         throw new Error("Failed to retrieve agent recording.");
