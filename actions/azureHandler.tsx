@@ -2,7 +2,7 @@
 
 import FormData, { Readable } from 'form-data';
 import { getRecordings } from './fileHandler';
-import { audioBufferToNodeBuffer, audioBufferToWavBlob, bufferToAudioBuffer, cutAudioBuffer, readableToBuffer, wavBufferToAudioBuffer } from '@/lib/audio';
+import { audioBufferToWavBlob, bufferToAudioBuffer, readableToBuffer, cutRawAudioBuffer, decodeWavToRawAudioBuffer, encodeRawAudioBufferToWav } from '@/lib/audio';
 import { assessPronunciation, PronunciationAssessmentWord } from './assessment';
 import fs from 'fs';
 import audioBufferToWav from 'audiobuffer-to-wav';
@@ -116,23 +116,9 @@ export const transcribeAudio = async (audioBuffer: Buffer) => {
 
     return result.data.phrases as TranscriptionResponse[];
 }
-async function assessAllSegments(
-    sourceBuffer: AudioBuffer,
-    segments: TranscriptionResponse[]
-): Promise<PronunciationAssessmentWord[][]> {
-    // Map each to a promise
-    const promises = segments.map(async seg => {
-        const cutBuf = cutAudioBuffer(sourceBuffer, seg.offsetMilliseconds, seg.durationMilliseconds);
-        const nodeBuf = audioBufferToNodeBuffer(cutBuf);
-        // Run pronunciation assessment
-        return assessPronunciation(seg.text, nodeBuf);
-    });
-    // Wait for all to finish
-    return Promise.all(promises);
-}
 
 export const transcribeAudioMerged = async (sessionId: string)=> {
-    const readable = await getRecordings(sessionId, "user");
+    const readable = await getRecordings(sessionId, "agent");
 
     if (!readable) {
         throw new Error("Failed to retrieve agent recording.");
@@ -141,8 +127,18 @@ export const transcribeAudioMerged = async (sessionId: string)=> {
     console.log("Transcribing audio for session ID:", sessionId);
     console.log("Agent recording retrieved successfully. now converting to buffer...");
     const audioBuffer = await readableToBuffer(readable);
-
     const transcription = await transcribeAudio(audioBuffer);
+
+    console.log("Trimming audio buffer to remove silence...");
+    const audioData = decodeWavToRawAudioBuffer(audioBuffer);
+    console.log("Audio data:", audioData);
+
+    const trimmedAudio = cutRawAudioBuffer(audioData, transcription[0].offsetMilliseconds, transcription[0].durationMilliseconds);
+    console.log("Trimmed audio data:", trimmedAudio);
+
+    const trimedBuffer = encodeRawAudioBufferToWav(trimmedAudio);
+    fs.writeFileSync("tmp/trimmed.wav", trimedBuffer);
+
     console.log("Transcription result:", transcription);
 }
 

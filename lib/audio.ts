@@ -1,6 +1,6 @@
 import { Readable } from "stream";
 import audioBufferToWav from "audiobuffer-to-wav";
-import { decode } from "node-wav";
+import * as wav from "node-wav";
 
 declare global {
     interface Window {
@@ -8,6 +8,12 @@ declare global {
     }
 }
 
+export interface RawAudioBuffer {
+    sampleRate: number;
+    numberOfChannels: number;
+    length: number;
+    channels: Float32Array[];
+}
 export async function mergeAudioBlobsInParallel(
     blobs: Blob[]
 ): Promise<Blob | null> {
@@ -55,10 +61,6 @@ export async function mergeAudioBlobsInParallel(
     context.close();
 
     return audioBufferToWavBlob(outputBuffer);
-}
-
-export function wavBufferToAudioBuffer(wavBuffer: Buffer) {
-    return decode(wavBuffer);
 }
 
 export async function bufferToAudioBuffer(buffer: ArrayBuffer): Promise<AudioBuffer> {
@@ -135,45 +137,51 @@ export function readableToBuffer(readable: Readable): Promise<Buffer> {
 }
 
 
-function toArrayBuffer(buffer: Buffer | Uint8Array): ArrayBuffer {
-    if (buffer instanceof ArrayBuffer) return buffer;
-    return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
-}
+export function decodeWavToRawAudioBuffer(wavBuffer: Buffer): RawAudioBuffer {
+    const result = wav.decode(wavBuffer);
 
+    const { sampleRate, channelData } = result;
+    const numberOfChannels = channelData.length;
+    const length = channelData[0]?.length ?? 0;
 
-
-export function cutAudioBuffer(
-    source: AudioBuffer,
-    offsetMilliseconds: number,
-    durationMilliseconds: number
-): AudioBuffer {
-    const sampleRate = source.sampleRate;
-    const offsetSamples = Math.floor((offsetMilliseconds / 1000) * sampleRate);
-    const durationSamples = Math.floor((durationMilliseconds / 1000) * sampleRate);
-    const numberOfChannels = source.numberOfChannels;
-
-    const cutLength = Math.min(durationSamples, source.length - offsetSamples);
-
-    const newBuffer = new AudioBuffer({
-        length: Math.max(0, cutLength),
+    return {
         sampleRate,
         numberOfChannels,
-    });
-
-    for (let channel = 0; channel < numberOfChannels; channel++) {
-        const sourceData = source.getChannelData(channel);
-        const targetData = newBuffer.getChannelData(channel);
-        for (let i = 0; i < cutLength; i++) {
-            targetData[i] = sourceData[offsetSamples + i] ?? 0;
-        }
-    }
-    return newBuffer;
+        length,
+        channels: Array.from(channelData),
+    };
 }
 
+export function encodeRawAudioBufferToWav(raw: RawAudioBuffer): Buffer {
+    const { sampleRate, channels } = raw;
+    const encoded = wav.encode(channels, { sampleRate });
+    return encoded;
+}
 
-export function audioBufferToNodeBuffer(audioBuffer: AudioBuffer): Buffer {
-    // Convert AudioBuffer to a WAV ArrayBuffer
-    const wav = audioBufferToWav(audioBuffer);
-    // Convert to Node.js Buffer
-    return Buffer.from(wav);
+export function cutRawAudioBuffer(
+    source: RawAudioBuffer,
+    offsetMilliseconds: number,
+    durationMilliseconds: number
+): RawAudioBuffer {
+    const { sampleRate, numberOfChannels, channels } = source;
+    const offsetSamples = Math.floor((offsetMilliseconds / 1000) * sampleRate);
+    const durationSamples = Math.floor((durationMilliseconds / 1000) * sampleRate);
+    const cutLength = Math.min(durationSamples, source.length - offsetSamples);
+
+    const newChannels: Float32Array[] = [];
+    for (let channel = 0; channel < numberOfChannels; channel++) {
+        const sourceData = channels[channel];
+        const slicedData = new Float32Array(cutLength);
+        for (let i = 0; i < cutLength; i++) {
+            slicedData[i] = sourceData[offsetSamples + i] ?? 0;
+        }
+        newChannels.push(slicedData);
+    }
+
+    return {
+        sampleRate,
+        numberOfChannels,
+        length: cutLength,
+        channels: newChannels,
+    };
 }
