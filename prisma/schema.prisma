@@ -52,16 +52,16 @@ enum SessionStatus {
 }
 
 model User {
-    id            String    @id @default(uuid())
+    id            String       @id @default(uuid())
     name          String?
-    email         String?   @unique
-    emailVerified DateTime? @map("email_verified")
+    email         String?      @unique
+    emailVerified DateTime?    @map("email_verified")
     image         String?
     password      String?
-    role          UserRole  @default(USER)
+    role          UserRole     @default(USER)
     accounts      Account[]
-    streak        DateTime  @default(now())
-    englishLevel EnglishLevel @default(B1)
+    streak        DateTime     @default(now())
+    englishLevel  EnglishLevel @default(B1)
 
     @@map("users")
 }
@@ -97,26 +97,28 @@ model logs {
 }
 
 model sessions {
-    id           String        @id @default(uuid())
-    userId       String        @map("user_id")
-    createdAt    DateTime      @default(now()) @map("created_at")
-    type         SessionType   @map("type")
-    topic        String
-    endedAt      DateTime?     @map("ended_at")
-    status       SessionStatus @default(PENDING) @map("status")
-    token        String?
-    question     String?
-    bulletPoints String?
+    id             String        @id @default(uuid())
+    userId         String        @map("user_id")
+    createdAt      DateTime      @default(now()) @map("created_at")
+    type           SessionType   @map("type")
+    topic          String
+    endedAt        DateTime?     @map("ended_at")
+    status         SessionStatus @default(PENDING) @map("status")
+    token          String?
+    question       String?
+    bulletPoints   String?
+    assessedDetail String?       @map("assessed_detail")
 
     @@map("sessions")
 }
-model video_session{
-    id           String        @id @default(uuid())
-    userId1       String        @map("user_id")
-    userId2       String        @map("user_id2")
-    createdAt    DateTime      @default(now()) @map("created_at")
-    topic        String
-    status       SessionStatus @default(PENDING) @map("status")
+
+model video_session {
+    id        String        @id @default(uuid())
+    userId1   String        @map("user_id")
+    userId2   String        @map("user_id2")
+    createdAt DateTime      @default(now()) @map("created_at")
+    topic     String
+    status    SessionStatus @default(PENDING) @map("status")
 
     @@map("video_sessions")
 }
