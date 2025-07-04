@@ -44,15 +44,20 @@ const MeetingPage = () => {
   useEffect(() => {
     if (!userSession || !userSession.startedAt) return;
 
-    const startTime = new Date(userSession.startedAt).getTime();
-    const endTime = startTime + SESSION_DURATION_MINUTES * 60 * 1000;
-    const alertTime = endTime - ALERT_BEFORE_END_MINUTES * 60 * 1000;
+    // Parse startedAt as local time and subtract 7 hours (25200000 ms) to get UTC
+    const localStart = new Date(userSession.startedAt);
+    const startTime = localStart.getTime() - (7 * 60 * 60 * 1000);
+
+    // Session ends 20 minutes after startedAt
+    const endTime = startTime + 20 * 60 * 1000; // 20 minutes in ms
+    const alertTime = endTime - 5 * 60 * 1000;  // 5 minutes before end
 
     const interval = setInterval(() => {
       const now = Date.now();
       const msLeft = endTime - now;
-      const minLeft = Math.ceil(msLeft / 60000);
-      setMinutesLeft(minLeft > 0 ? minLeft : 0);
+      const minLeft = Math.max(0, Math.ceil(msLeft / 60000)); // Clamp to 0
+
+      setMinutesLeft(minLeft);
 
       // Show alert at 15 minutes (5 minutes left)
       if (
@@ -110,13 +115,7 @@ const MeetingPage = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 relative">
       {/* ALERT BANNER */}
-      {showAlert && (
-        <div className="absolute top-0 left-0 w-full flex justify-center z-50">
-          <div className="bg-red-600 text-white text-2xl font-bold py-6 px-8 rounded-b-xl shadow-lg animate-pulse mt-0">
-            Session will end in {ALERT_BEFORE_END_MINUTES} minutes. Please wrap up.
-          </div>
-        </div>
-      )}
+      
 
       <VideoRoom
         micOn={micOn}

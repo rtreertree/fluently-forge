@@ -19,18 +19,29 @@ export const getDailyStreak = async (userId: string) => {
         orderBy: { createdAt: "asc" },
         select: { createdAt: true },
     });
-    const video_sessions = await db.video_session.findMany({
-        where: {
-            OR: [
-                { userId1: userId },
-                { userId2: userId }
-            ],
-            status: "COMPLETED",
-        },
-        orderBy: { startedAt: "asc" },
-        select: { startedAt: true },
-    });
-
+    let video_sessions: { startedAt?: Date }[] = [];
+    try {
+        video_sessions = await db.video_session.findMany({
+            where: {
+                OR: [
+                    { userId1: userId },
+                    { userId2: userId }
+                ],
+                status: "COMPLETED",
+            },
+            orderBy: { startedAt: "asc" },
+            select: { startedAt: true },
+        });
+    } catch (e: any) {
+        // If the error is about missing column or table, treat as empty list
+        if (e.code === 'P2022' || e.code === 'P2021') {
+            // P2022: Column does not exist, P2021: Table does not exist
+            video_sessions = [];
+            console.log("video_sessions table or startedAt column missing, returning empty list.");
+        } else {
+            throw e; // rethrow other errors
+        }
+    }
     // Combine sessions and video_sessions into one array of dates
     const allSessionDates = [
         ...sessions.map(s => ({ date: new Date(s.createdAt) })),
@@ -171,20 +182,30 @@ export const getWeeklyProgress = async (userId: string) => {
         select: { createdAt: true },
     });
 
-    const video_sessions = await db.video_session.findMany({
-        where: {
-            OR: [
-                { userId1: userId },
-                { userId2: userId }
-            ],
-            status: "COMPLETED",
-            startedAt: {
-                gte: monday,
-                lte: sunday,
+    let video_sessions = [];
+    try {
+        video_sessions = await db.video_session.findMany({
+            where: {
+                OR: [
+                    { userId1: userId },
+                    { userId2: userId }
+                ],
+                status: "COMPLETED",
+                startedAt: {
+                    gte: monday,
+                    lte: sunday,
+                },
             },
-        },
-        select: { startedAt: true },
-    });
+            select: { startedAt: true },
+        });
+    } catch (e: any) {
+        if (e.code === 'P2022' || e.code === 'P2021') {
+            video_sessions = [];
+            console.log("video_sessions table or startedAt column missing, returning empty list.");
+        } else {
+            throw e;
+        }
+    }
 
     // Normalize all session dates to start of ICT day (UTC+7)
     const allSessionDates = [
@@ -243,24 +264,34 @@ export const getTodaySessionTypeCounts = async (userId: string) => {
         },
         select: { type: true },
     });
-    const video_sessions = await db.video_session.findMany({
-        where: {
-            OR: [
-                { userId1: userId },
-                { userId2: userId }
-            ],
-            status: "COMPLETED",
-            startedAt: {
-                gte: utcStart,
-                lte: utcEnd,
-            },
+    let video_sessions_today = [];
+    try {
+        video_sessions_today = await db.video_session.findMany({
+            where: {
+                OR: [
+                    { userId1: userId },
+                    { userId2: userId }
+                ],
+                status: "COMPLETED",
+                startedAt: {
+                    gte: utcStart,
+                    lte: utcEnd,
+                },
+            }
+        });
+    } catch (e: any) {
+        if (e.code === 'P2022' || e.code === 'P2021') {
+            video_sessions_today = [];
+            console.log("video_sessions table or startedAt column missing, returning empty list.");
+        } else {
+            throw e;
         }
-    });
+    }
     // Count by type
     const counts: Record<string, number> = {};
     sessions.forEach((s) => {
         counts[s.type] = (counts[s.type] || 0) + 1;
     });
-    counts["VIDEO_CALL"] = video_sessions.length;
+    counts["VIDEO_CALL"] = video_sessions_today.length;
     return counts;
 };

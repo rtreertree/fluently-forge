@@ -87,7 +87,7 @@ const DailyStreakPage = () => {
                                 </div>
                                 <span className="mt-2 text-base font-medium text-gray-600 flex items-center gap-1">
                                     {weekday}
-                                    {isToday && (
+                                    {day.active && isToday && (
                                         <span className="text-s text-orange-500 font-semibold ml-1">
                                             {dateObj.getDate().toString().padStart(2, "0")}/
                                             {(dateObj.getMonth() + 1).toString().padStart(2, "0")}
