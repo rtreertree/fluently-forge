@@ -57,7 +57,6 @@ export const AppSidebar = () => {
                         <SidebarMenu>
                             {items.map((item, idx) => {
                                 const isActive = pathname === item.url;
-                                // Only open if hovered and not collapsed
                                 const isOpen = hoveredIndex === idx && !isCollapsed;
                                 return (
                                     <SidebarMenuItem key={item.title}>
@@ -66,6 +65,8 @@ export const AppSidebar = () => {
                                             variant={isActive ? "outline" : "default"}
                                             onMouseEnter={() => !isCollapsed && setHoveredIndex(idx)}
                                             onMouseLeave={() => setHoveredIndex(null)}
+                                            onFocus={() => !isCollapsed && setHoveredIndex(idx)}
+                                            onBlur={() => setHoveredIndex(null)}
                                         >
                                             <Link href={item.url} aria-label={item.title} className="flex items-center gap-2">
                                                 <item.icon size={20} />
@@ -74,10 +75,10 @@ export const AppSidebar = () => {
                                         </SidebarMenuButton>
                                         <div
                                             className={`
-                                                transition-all duration-300 ease-in-out
-                                                overflow-hidden
-                                                ${isOpen ? "max-h-24 opacity-100 my-1" : "max-h-0 opacity-0 my-0"}
-                                            `}
+            transition-all duration-300 ease-in-out
+            overflow-hidden
+            ${isOpen ? "max-h-24 opacity-100 my-1" : "max-h-0 opacity-0 my-0"}
+          `}
                                             onMouseEnter={() => !isCollapsed && setHoveredIndex(idx)}
                                             onMouseLeave={() => setHoveredIndex(null)}
                                             style={{ willChange: "max-height, opacity" }}

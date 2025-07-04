@@ -4,6 +4,9 @@ import { openaiClient } from "@/lib/openai";
 import * as zod from "zod";
 import { zodResponseFormat, zodTextFormat } from "openai/helpers/zod";
 import { SessionType } from "@prisma/client";
+import fs, { ReadStream } from "fs";
+import { Uploadable } from "openai/uploads.mjs";
+import { Readable } from "stream";
 
 
 export const validateTopic = async (topic: string, type: SessionType) => {
@@ -11,7 +14,7 @@ export const validateTopic = async (topic: string, type: SessionType) => {
         isValidTopic: zod.boolean()
     });
 
-    
+
     let prompt = "";
     if (type === "MONOLOGUE" || type === "SMALLTALK") {
         prompt = `You will be given a topic and you need to determine if it is a valid topic for a conversation. 
@@ -115,7 +118,7 @@ export const getMonologueQuestion = async (topic: string) => {
 
     const parsedResponse = completion.output_parsed;
     if (!parsedResponse) {
-       throw new Error("Error parsing response"); 
+        throw new Error("Error parsing response");
     }
     return parsedResponse;
 };

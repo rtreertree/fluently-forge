@@ -86,10 +86,12 @@ export default function ActiveSession() {
     }
 
     return (
-        <div className="flex flex-col md:flex-row justify-center gap-4 p-5">
+        <div className="flex justify-center items-center h-screen p-5">
+        <div className="flex flex-col md:flex-row justify-center items-center gap-4">
             {activeSession.type === "MONOLOGUE" && <SessionMonologue session={activeSession} />}
             {activeSession.type === "SMALLTALK" && <SessionAgent session={activeSession} />}
             {activeSession.type === "SCENARIO_CREATION" && <SessionAgent session={activeSession} />}
         </div>
+    </div>
     );
 }
