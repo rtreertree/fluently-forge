@@ -1,8 +1,15 @@
 "use server";
 import { db } from "@/lib/db";
 import { v4 as uuid } from "uuid";
+import { RtcTokenBuilder, RtcRole } from 'agora-access-token';
 
-export const isVideoSessionActive = async (userId: string, topic: string) => {
+
+
+export const isVideoSessionActive = async (
+  userId: string,
+  topic: string,
+  list_date: string[] 
+) => {
   const formattedTopic = topic.toUpperCase().replace(/\s+/g, "");
 
 
@@ -20,35 +27,37 @@ export const isVideoSessionActive = async (userId: string, topic: string) => {
     return "already-in-session";
   }
 
-  const topicSession = await db.video_session.findFirst({
-    where: { topic: formattedTopic },
-  });
-
-
-  if (topicSession) {
     const videoSession = await db.video_session.findFirst({
-      where: { topic: formattedTopic },
+      where: {
+        OR: [
+          { userId1: "" },
+          { userId2: "" }
+        ],
+        topic: formattedTopic,
+        status: "PENDING"
+      },
     });
     if (videoSession) {
       await db.video_session.update({
         where: { id: videoSession.id },
-        data: { userId2: userId,
-                status: "ACTIVE"  
-         }, // Set status to ACTIVE when joined
+        data: {
+          userId2: userId,
+          status: "ACTIVE"
+        },
       });
       return "joined-session";
-    }
   }
 
-  if (!topicSession) {
-    await db.video_session.create({
-      data: {
-        id: uuid(),
-        userId1: userId,
-        userId2: "",
-        topic: formattedTopic,
-      },
-    });
+  if (!videoSession) {
+await db.video_session.create({
+  data: {
+    id: uuid(),
+    userId1: userId,
+    userId2: "",
+    topic: formattedTopic,
+    listdate: list_date,
+  },
+});
     return "created-session";
   }
 
@@ -66,7 +75,7 @@ export const getUserVideoSession = async (userId: string) => {
         { userId1: userId },
         { userId2: userId }
       ],
-      status: "ACTIVE", 
+      status: "ACTIVE",
     },
   });
 };
@@ -74,7 +83,242 @@ export const getUserVideoSession = async (userId: string) => {
 export const endVideoSession = async (sessionId: string) => {
   return db.video_session.update({
     where: { id: sessionId },
-    data: { status: "COMPLETED" },
+    data: { status: "COMPLETED",
+            endedAt: new Date(new Date().getTime() + 7 * 60 * 60 * 1000)
+     },
   });
 };
+
+const APP_ID = process.env.NEXT_PUBLIC_AGORA_APP_ID!;
+const APP_CERTIFICATE = process.env.NEXT_PUBLIC_AGORA_APP_CERTIFICATE!;
+
+
+export const generateAgoraUid = async (userId: string): Promise<number> => {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = (hash << 5) - hash + userId.charCodeAt(i);
+    hash |= 0; // Convert to 32-bit signed integer
+  }
+
+  // Ensure it's in valid UID range (1 to 4294967295)
+  const uid = Math.abs(hash) % 4294967295;
+
+  return uid === 0 ? 1 : uid;
+};
+
+
+export const generateTokensForBothUsers = async (userId: string) => {
+  const session = await db.video_session.findFirst({
+    where: {
+      OR: [
+        { userId1: userId },
+        { userId2: userId }
+      ],
+      status: "ACTIVE",
+    },
+  });
+  console.log("Session:", session);
+  if (!session || !session.userId1 || !session.userId2 || !session.topic) {
+    return null;
+  }
+
+  const channelName = session.topic;
+  const expireTime = Math.floor(Date.now() / 1000) + 86400; // 24h
+  const uid1 = await generateAgoraUid(session.userId1);
+  const uid2 = await generateAgoraUid(session.userId2);
+  const tokenUser1 = RtcTokenBuilder.buildTokenWithUid(
+    APP_ID,
+    APP_CERTIFICATE,
+    channelName,
+    uid1,
+    RtcRole.PUBLISHER,
+    expireTime
+  );
+
+  const tokenUser2 = RtcTokenBuilder.buildTokenWithUid(
+    APP_ID,
+    APP_CERTIFICATE,
+    channelName,
+    uid2,
+    RtcRole.PUBLISHER,
+    expireTime
+  );
+  console.log("uid:", uid1);
+  console.log("uid2:", uid2);
+  console.log("Token User 1:", tokenUser1);
+  console.log("Token User 2:", tokenUser2);
+  await db.video_session.update({
+    where: { id: session.id },
+    data: {
+      tokenuser1: tokenUser1,
+      tokenuser2: tokenUser2,
+    },
+  });
+
+  return {
+    user1: { uid: 1, token: tokenUser1 },
+    user2: { uid: 2, token: tokenUser2 },
+  };
+};
+
+export const getVideoSessionTopicAndToken = async (
+  userId: string
+): Promise<{ topic: string; token: string; uid: number } | null> => {
+  const session = await db.video_session.findFirst({
+    where: {
+      OR: [
+        { userId1: userId },
+        { userId2: userId }
+      ],
+      status: "ACTIVE",
+    },
+  });
+
+  if (!session) return null;
+
+  // Generate UIDs for both users
+  const uid1 = await generateAgoraUid(session.userId1);
+  const uid2 = await generateAgoraUid(session.userId2);
+
+  let token: string | null = null;
+  let uid: number | null = null;
+
+  if (session.userId1 === userId) {
+    token = session.tokenuser1;
+    uid = uid1;
+  } else if (session.userId2 === userId) {
+    token = session.tokenuser2;
+    uid = uid2;
+  }
+
+  if (!token || !uid) return null;
+
+  return {
+    topic: session.topic,
+    token,
+    uid, // <-- This will now be the real UID, not 1 or 2
+  };
+};
+
+
+export const getUserNamesBySessionId = async (sessionId: string) => {
+  const session = await db.video_session.findUnique({
+    where: { id: sessionId },
+    select: { userId1: true, userId2: true },
+  });
+  if (!session) return { user1: null, user2: null };
+
+  const [user1, user2] = await Promise.all([
+    session.userId1
+      ? db.user.findUnique({ where: { id: session.userId1 }, select: { name: true } })
+      : null,
+    session.userId2
+      ? db.user.findUnique({ where: { id: session.userId2 }, select: { name: true } })
+      : null,
+  ]);
+
+  return {
+    user1: user1?.name || null,
+    user2: user2?.name || null,
+  };
+};
+
+export const getSessionUserNamesBySessionId = async (sessionId: string) => {
+  const session = await db.video_session.findUnique({
+    where: { id: sessionId },
+    select: { userId1: true, userId2: true },
+  });
+  if (!session) return [];
+
+  const userIds = [session.userId1, session.userId2].filter(Boolean) as string[];
+
+  const users = await db.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, name: true }
+  });
+
+  // Ensure the names are in the same order as userIds
+  const names = userIds.map(
+    id => users.find(u => u.id === id)?.name || "Unknown"
+  );
+
+  return names;
+};
+
+export const getPendingSessionByTopic = async (
+  userId: string,
+  topic: string
+) => {
+  const formattedTopic = topic.toUpperCase().replace(/\s+/g, "");
+  // Check if user is already in an active session
+  const userSession = await db.video_session.findFirst({
+    where: {
+      OR: [
+        { userId1: userId },
+        { userId2: userId }
+      ],
+      status: "ACTIVE"
+    },
+  });
+  if (userSession) {
+    return { status: "already-in-session" };
+  }
+
+  // Check for a pending session for this topic
+  const videoSession = await db.video_session.findFirst({
+    where: {
+      OR: [
+        { userId1: userId },
+        { userId2: userId }
+      ],
+      topic: formattedTopic,
+      status: "PENDING"
+    },
+  });
+  if (videoSession) {
+    return { status: "pending-session", session: videoSession };
+  }
+  const joinsession = await db.video_session.findFirst({
+    where: {
+      OR: [
+        { userId1: "" },
+        { userId2: "" }
+      ],
+      topic: formattedTopic,
+      status: "PENDING"
+    },
+  });
+  if (joinsession) {
+    return { status: "join-sesion", session: joinsession };
+  }
+
+  return { status: "no-session" };
+};
+
+// Get the first user's listdate for a session
+export const getSessionListDates = async (sessionId: string) => {
+  const session = await db.video_session.findUnique({
+    where: { id: sessionId },
+    select: { listdate: true },
+  });
+  return session?.listdate || [];
+};
+
+// Set startedAt in the session when user2 joins
+export const joinSessionWithStartAt = async (
+  sessionId: string,
+  userId: string,
+  startedAt: Date, 
+) => {
+
+  return db.video_session.update({
+    where: { id: sessionId },
+    data: {
+      userId2: userId,
+      status: "ACTIVE",
+      startedAt: startedAt,
+    },
+  });
+};
+
 

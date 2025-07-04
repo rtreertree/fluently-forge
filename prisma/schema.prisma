@@ -40,7 +40,6 @@ enum LogType {
 enum SessionType {
     SMALLTALK
     SCENARIO_CREATION
-    DICTIONARY
     MONOLOGUE
 }
 
@@ -112,13 +111,18 @@ model sessions {
     @@map("sessions")
 }
 
-model video_session {
-    id        String        @id @default(uuid())
-    userId1   String        @map("user_id")
-    userId2   String        @map("user_id2")
-    createdAt DateTime      @default(now()) @map("created_at")
-    topic     String
-    status    SessionStatus @default(PENDING) @map("status")
+model video_session{
+    id           String        @id @default(cuid())
+    userId1       String        @map("user_id")
+    userId2       String        @map("user_id2")
+    createdAt    DateTime      @default(now()) @map("created_at")
+    topic        String
+    status       SessionStatus @default(PENDING) @map("status")
+    tokenuser1       String?
+    tokenuser2       String?
+    listdate      String[]     @map("list_date")
+    startedAt    DateTime?    @map("started_at")
+    endedAt      DateTime?    @map("ended_at")
 
     @@map("video_sessions")
 }

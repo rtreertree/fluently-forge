@@ -15,17 +15,17 @@ import {
 import SmallTalkForm from "./create/smalltalk-form";
 import MonologueForm from "./create/monologue-form";
 import ScenarioForm from "./create/scenario-form";
+import { useRouter } from "next/navigation";
 
 interface SessionCreateCardProps {
     type: SessionType;
 }
-
 const items = [
     { name: "Small Talk", description: "Practice your English speaking skills with our AI-powered conversation partner.", link: "/session/create/small-talk", type: SessionType.SMALLTALK },
     { name: "Scenario Creation", description: "Create scenarios to practice your English in real-world situations.", link: "/session/create/scenario-creation", type: SessionType.SCENARIO_CREATION },
-    { name: "Dictionary", description: "Learn new words and expand your vocabulary.", link: "/session/create/dictionary", type: SessionType.DICTIONARY },
     { name: "Monologue", description: "Improve your speaking skills with guided idea and bullet points.", link: "/session/create/public-speaking", type: SessionType.MONOLOGUE },
 ];
+console.log("test",items);
 
 const SessionCreateCard: React.FC<SessionCreateCardProps> = ({ type }: SessionCreateCardProps) => {
     const session = useSession();
@@ -52,7 +52,6 @@ const SessionCreateCard: React.FC<SessionCreateCardProps> = ({ type }: SessionCr
                     </DialogHeader>
                     {sessionDescription.type === SessionType.MONOLOGUE && (<MonologueForm />)}
                     {sessionDescription.type === SessionType.SMALLTALK && (<SmallTalkForm />)}
-                    {sessionDescription.type === SessionType.DICTIONARY && (<p>Dictionary</p>)}
                     {sessionDescription.type === SessionType.SCENARIO_CREATION && (<ScenarioForm />)}
                 </DialogContent>
 

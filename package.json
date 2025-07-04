@@ -27,6 +27,7 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@types/bcryptjs": "^2.4.6",
     "@types/node-wav": "^0.0.4",
+    "agora-access-token": "^2.0.4",
     "agora-rtc-sdk-ng": "^4.23.4",
     "audiobuffer-to-wav": "^1.0.0",
     "axios": "^1.9.0",
