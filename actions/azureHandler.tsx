@@ -2,11 +2,9 @@
 
 import FormData, { Readable } from 'form-data';
 import { getRecordings } from './fileHandler';
-import { audioBufferToWavBlob, bufferToAudioBuffer, readableToBuffer, cutRawAudioBuffer, decodeWavToRawAudioBuffer, encodeRawAudioBufferToWav } from '@/lib/audio';
+import { audioBufferToWavBlob, bufferToAudioBuffer, readableToBuffer, cutRawAudioBuffer, decodeWavToRawAudioBuffer, encodeRawAudioBufferToWav, RawAudioBuffer } from '@/lib/audio';
 import { assessPronunciation, PronunciationAssessmentWord } from './assessment';
-import fs from 'fs';
-import audioBufferToWav from 'audiobuffer-to-wav';
-import wav from 'node-wav';
+import { db } from '@/lib/db';
 
 import axios from 'axios';
 
@@ -102,6 +100,24 @@ export const transcribeAudio = async (audioBuffer: Buffer) => {
     }));
 
     const result = await axios.post(BASE_URL, form, {
+        onUploadProgress: (progressEvent) => {
+            if (progressEvent.total === undefined) {
+                console.warn("Total size is not available for upload progress.");
+                return;
+            }
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log(`Upload progress: ${percentCompleted}%`);
+        },
+
+        onDownloadProgress: (progressEvent) => {
+            if (progressEvent.total === undefined) {
+                console.warn("Total size is not available for download progress.");
+                return;
+            }
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log(`Download progress: ${percentCompleted}%`);
+        },
+
         headers: {
             'Ocp-Apim-Subscription-Key': SUBSCRIPTION_KEY,
             'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`,
@@ -118,7 +134,7 @@ export const transcribeAudio = async (audioBuffer: Buffer) => {
 }
 
 export const transcribeAudioMerged = async (sessionId: string)=> {
-    const readable = await getRecordings(sessionId, "agent");
+    const readable = await getRecordings(sessionId, "user");
 
     if (!readable) {
         throw new Error("Failed to retrieve agent recording.");
@@ -131,64 +147,54 @@ export const transcribeAudioMerged = async (sessionId: string)=> {
 
     console.log("Trimming audio buffer to remove silence...");
     const audioData = decodeWavToRawAudioBuffer(audioBuffer);
-    console.log("Audio data:", audioData);
 
-    const trimmedAudio = cutRawAudioBuffer(audioData, transcription[0].offsetMilliseconds, transcription[0].durationMilliseconds);
-    console.log("Trimmed audio data:", trimmedAudio);
+    console.log("Processing transcription phrases...");
 
-    const trimedBuffer = encodeRawAudioBufferToWav(trimmedAudio);
-    fs.writeFileSync("tmp/trimmed.wav", trimedBuffer);
+    // split data into chucks according to transcription with promise.all
+    const transcriptionPromises =  transcription.map(async (phrase) => {
+        const start = phrase.offsetMilliseconds;
+        const duration = phrase.durationMilliseconds;
 
-    console.log("Transcription result:", transcription);
+        // Cut the audio buffer for this phrase
+        const cutAudio = cutRawAudioBuffer(audioData, start, duration);
+        console.log(`Cut audio for phrase "${phrase.text}" from ${start}ms to ${start + duration}ms`);
+
+        // Convert the cut audio back to WAV format
+        const wavBuffer = encodeRawAudioBufferToWav(cutAudio);
+        return {
+            ...phrase,
+            wavBuffer
+        };
+    });
+
+    const phrases = await Promise.all(transcriptionPromises);
+
+    console.log("create an assessment for each phrase in parallel...");
+    // Process each phrase in parallel for pronunciation assessment
+    const assessmentPromises = phrases.map(async (phrase) => {
+        const assessment = await assessPronunciation(phrase.text, phrase.wavBuffer);
+        return {
+            ...phrase,
+            assessment
+        };
+    });
+
+    const assessedPhrases = await Promise.all(assessmentPromises);
+
+    // remove waveBuffer from assessedPhrase
+    const finalPhrases = assessedPhrases.map(({ wavBuffer, ...rest }) => rest);
+
+    db.sessions.update({
+        where: { id: sessionId },
+        data: {
+            assessedDetail: JSON.stringify(finalPhrases)
+        }
+    }).catch((err) => {
+        console.error("Failed to update session with transcription:", err);
+        throw new Error("Failed to update session with transcription.");
+    });
+
+
+    console.log("All phrases assessed successfully.");
+    console.log("Returning merged transcription with assessments...");
 }
-
-// export const transcribeAudioMerged = async (sessionId: string) => {
-
-//     console.log("Transcribing audio for session ID:", sessionId);
-//     const userRecordings = await getRecordings(sessionId, "user");
-//     const agentRecordings = await getRecordings(sessionId, "agent");
-
-//     if (!userRecordings || !agentRecordings) {
-//         throw new Error("Failed to retrieve recordings for user or agent.");
-//     }
-
-    
-//     console.log("User and agent recordings retrieved successfully. now converting to buffers...");
-
-//     const userBuffer = await readableToBuffer(userRecordings);
-//     const agentBuffer = await readableToBuffer(agentRecordings);
-
-//     console.log(userBuffer.subarray(0, 16));
-//     console.log("User audio buffer size:", userBuffer.length);
-//     console.log("Agent audio buffer size:", agentBuffer.length);
-
-//     console.log("ASCII: ", userBuffer.toString('ascii', 0, 16))
-
-    // const audioContext = new AudioContext();
-    // const audioBuffer = await bufferToAudioBuffer(agentBuffer);
-    // const wavBuffer = audioBufferToWav(audioBuffer);
-
-    // fs.writeFile("tmp/agent.wav", Buffer.from(wavBuffer), (err) => {
-    //     if (err) {
-    //         console.error("Error writing user audio buffer to file:", err);
-    //     } else {
-    //         console.log("User audio buffer written to tmp/user.wav");
-    //     }
-    // });
-
-    // // Transcribe both user and agent audio
-    // const [userTranscription, agentTranscription] = await Promise.all([
-    //     transcribeAudio(userBuffer),
-    //     transcribeAudio(agentBuffer)
-    // ]);
-
-    // const audioContext = new AudioContext();
-    // const userAudioBuffer = await bufferToAudioBuffer(userBuffer, audioContext);
-
-    // const wordResults = await assessAllSegments(userAudioBuffer, userTranscription);
-    // console.log("User word results:", wordResults);
-
-
-    // const mergedTranscription = await mergeTranscriptions(agentTranscription, userTranscription);
-    // return mergedTranscription;
-// }

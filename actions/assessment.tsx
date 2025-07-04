@@ -34,7 +34,7 @@ export async function assessPronunciation(script: string, audioBuffer?: Buffer):
     const language = "en-US";
 
     if (!audioBuffer) {
-        audioBuffer = fs.readFileSync("tmp/testaudio.wav");
+        throw "Audio buffer is not provided";
     }
 
     const audioConfig: sdk.AudioConfig = sdk.AudioConfig.fromWavFileInput(audioBuffer);
@@ -42,7 +42,7 @@ export async function assessPronunciation(script: string, audioBuffer?: Buffer):
     speechConfig.speechRecognitionLanguage = language;
 
     const pronunciationAssessmentConfig = new sdk.PronunciationAssessmentConfig(
-        "",
+        script,
         sdk.PronunciationAssessmentGradingSystem.HundredMark,
         sdk.PronunciationAssessmentGranularity.Word,
         true
@@ -59,10 +59,12 @@ export async function assessPronunciation(script: string, audioBuffer?: Buffer):
             const result = event.result;
             if (result.reason === sdk.ResultReason.RecognizedSpeech) {
                 const pronunciation_result = sdk.PronunciationAssessmentResult.fromResult(result);
+                console.log("Recognized:", pronunciation_result);
                 let detailResult: PronunciationAssessmentDetailResult | undefined;
                 try {
                     detailResult = JSON.parse(JSON.stringify(pronunciation_result.detailResult));
                 } catch (_err) { /* ignore parse error */ }
+
                 if (detailResult) {
                     masterWordList.push(...detailResult.Words);
                 }
