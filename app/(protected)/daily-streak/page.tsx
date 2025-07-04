@@ -14,7 +14,7 @@ const daysShort = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const SESSION_TYPES = [
     { key: "SMALLTALK", label: "Smalltalk" },
     { key: "SCENARIO_CREATION", label: "Scenario" },
-    { key: "DICTIONARY", label: "Dictionary" },
+    { key: "VIDEO_CALL", label: "Video-Call" },
     { key: "MONOLOGUE", label: "Monologue" },
 ];
 
@@ -64,6 +64,12 @@ const DailyStreakPage = () => {
                         const offset = curveOffsets[idx % curveOffsets.length];
                         const dateObj = new Date(day.date);
                         const weekday = daysShort[dateObj.getDay()];
+                        // Check if this day is today (in ICT)
+                        const today = new Date();
+                        const todayICT = new Date(today.getTime() + 7 * 60 * 60 * 1000);
+                        todayICT.setUTCHours(0, 0, 0, 0);
+                        const isToday =
+                            dateObj.toISOString().slice(0, 10) === todayICT.toISOString().slice(0, 10);
                         return (
                             <div
                                 key={day.date}
@@ -77,9 +83,17 @@ const DailyStreakPage = () => {
                                             : "bg-gray-200 text-gray-400"
                                     }`}
                                 >
-                                   <Star size={30} className="inline-block"/>
+                                    <Star size={30} className="inline-block" />
                                 </div>
-                                <span className="mt-2 text-base font-medium text-gray-600">{weekday}</span>
+                                <span className="mt-2 text-base font-medium text-gray-600 flex items-center gap-1">
+                                    {weekday}
+                                    {day.active && isToday && (
+                                        <span className="text-s text-orange-500 font-semibold ml-1">
+                                            {dateObj.getDate().toString().padStart(2, "0")}/
+                                            {(dateObj.getMonth() + 1).toString().padStart(2, "0")}
+                                        </span>
+                                    )}
+                                </span>
                             </div>
                         );
                     })}

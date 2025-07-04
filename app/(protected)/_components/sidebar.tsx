@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
-import { Home, Calendar, PencilLine, List, Video } from "lucide-react";
+import { Home, Calendar, PencilLine, List } from "lucide-react";
 import {
     Sidebar,
     SidebarContent,
@@ -28,7 +28,6 @@ type SidebarItem = {
 export const AppSidebar = () => {
     const items: SidebarItem[] = [
         { title: "Home", url: "/home", icon: Home, description: "Go to your dashboard home." },
-        {title: "Video call", url: "/video-call/create", icon: Video, description: "Join a video call session." },
         { title: "Daily Streak", url: "/daily-streak", icon: Calendar, description: "Track your daily learning streak." },
         { title: "Create session", url: "/session/create", icon: PencilLine, description: "Start a new learning session." },
         { title: "Session list", url: "/session/list", icon: List, description: "View all your previous sessions." },
@@ -61,20 +60,18 @@ export const AppSidebar = () => {
                                 // Only open if hovered and not collapsed
                                 const isOpen = hoveredIndex === idx && !isCollapsed;
                                 return (
-                                    <li key={item.title} className="list-none p-0 m-0">
-                                        <SidebarMenuItem>
-                                            <SidebarMenuButton
-                                                asChild
-                                                variant={isActive ? "outline" : "default"}
-                                                onMouseEnter={() => !isCollapsed && setHoveredIndex(idx)}
-                                                onMouseLeave={() => setHoveredIndex(null)}
-                                            >
-                                                <Link href={item.url} aria-label={item.title} className="flex items-center gap-2">
-                                                    <item.icon size={20} />
-                                                    <span>{item.title}</span>
-                                                </Link>
-                                            </SidebarMenuButton>
-                                        </SidebarMenuItem>
+                                    <SidebarMenuItem key={item.title}>
+                                        <SidebarMenuButton
+                                            asChild
+                                            variant={isActive ? "outline" : "default"}
+                                            onMouseEnter={() => !isCollapsed && setHoveredIndex(idx)}
+                                            onMouseLeave={() => setHoveredIndex(null)}
+                                        >
+                                            <Link href={item.url} aria-label={item.title} className="flex items-center gap-2">
+                                                <item.icon size={20} />
+                                                <span>{item.title}</span>
+                                            </Link>
+                                        </SidebarMenuButton>
                                         <div
                                             className={`
                                                 transition-all duration-300 ease-in-out
@@ -89,7 +86,7 @@ export const AppSidebar = () => {
                                                 {item.description}
                                             </div>
                                         </div>
-                                    </li>
+                                    </SidebarMenuItem>
                                 );
                             })}
                         </SidebarMenu>

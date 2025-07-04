@@ -2,22 +2,49 @@
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useEffect, useState } from "react";
-import { isVideoSessionActive, getUserVideoSession } from "@/actions/video-session";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Link } from "lucide-react";
+import {
+  getPendingSessionByTopic,
+  generateTokensForBothUsers,
+  getUserVideoSession,
+} from "@/actions/video-session";
+import { validateTopic } from "@/actions/openaiHandler";
+import CreateSessionForm from "@/app/(protected)/_components/video_session/createsessionForm";
+import JoinSessionForm from "@/app/(protected)/_components/video_session/JoinSessionForm";
+import Loader from "@/components/suspend/loading";
+
+const timeRangeSchema = z.object({
+  startDate: z.string().min(1, "Start date is required"),
+  startTime: z.string().min(1, "Start time is required"),
+  endDate: z.string().min(1, "End date is required"),
+  endTime: z.string().min(1, "End time is required"),
+});
+
+const optionalTimeRangeSchema = z.object({
+  startDate: z.string().optional(),
+  startTime: z.string().optional(),
+  endDate: z.string().optional(),
+  endTime: z.string().optional(),
+});
 
 const videoCallSchema = z.object({
   prompt: z.string().min(1, "Topic is required").max(80, "Your prompt must be less than 80 characters"),
+  priority1: timeRangeSchema, // mandatory
+  priority2: optionalTimeRangeSchema.optional(), // optional
+  priority3: optionalTimeRangeSchema.optional(), // optional
 });
 
-const VideoCallPage = () => {
-  const [joined, setJoined] = useState(false);
+const Page = () => {
+  const [step, setStep] = useState<"check" | "create" | "join">("check");
   const [sessionResult, setSessionResult] = useState<string | null>(null);
+  const [pendingSession, setPendingSession] = useState<any>(null);
+  const [selectedListDate, setSelectedListDate] = useState<string>("");
   const [checking, setChecking] = useState(false);
+  const [serverStatus, setServerStatus] = useState<string | null>(null);
   const [userSession, setUserSession] = useState<any>(null);
 
   const session = useSession();
@@ -28,30 +55,77 @@ const VideoCallPage = () => {
       const userId = session.data?.user?.id;
       if (!userId) return;
       const sessionData = await getUserVideoSession(userId);
-      setUserSession(sessionData);
+      setUserSession(sessionData); // Only set if sessionData exists
     };
     fetchSession();
-  }, [session.data?.user?.id, sessionResult]);
+  }, [session.data?.user?.id]);
 
   const form = useForm<z.infer<typeof videoCallSchema>>({
     resolver: zodResolver(videoCallSchema),
     defaultValues: {
       prompt: "",
+      priority1: { startDate: "", startTime: "", endDate: "", endTime: "" },
+      priority2: { startDate: "", startTime: "", endDate: "", endTime: "" },
+      priority3: { startDate: "", startTime: "", endDate: "", endTime: "" },
     },
   });
 
-  async function onSubmit(values: z.infer<typeof videoCallSchema>) {
+  const handleCheckAvailability = async () => {
     setChecking(true);
     setSessionResult(null);
+    setServerStatus(null);
     const userId = session.data?.user?.id || "";
     if (!userId) {
       setSessionResult("User not authenticated.");
       setChecking(false);
       return;
     }
-    const result = await isVideoSessionActive(userId, values.prompt);
-    setSessionResult(result);
+    const topic = form.getValues("prompt");
+    if (!topic) {
+      setSessionResult("Please enter a topic.");
+      setChecking(false);
+      return;
+    }
+
+    // Use OpenAI validation for topic
+    const isValid = await validateTopic(topic, "MONOLOGUE"); // or the correct SessionType
+    if (!isValid) {
+      setSessionResult("This topic is not allowed. Please choose another topic.");
+      setChecking(false);
+      return;
+    }
+
+    const result = await getPendingSessionByTopic(userId, topic);
+    setServerStatus(result.status);
+
+    if (result.status === "already-in-session") {
+      setSessionResult("You are already in an active session.");
+      setChecking(false);
+      return;
+    }
+
+    if (result.status === "pending-session" && result.session) {
+      setPendingSession(result.session);
+      setSessionResult("you are in this session already.");
+      setChecking(false);
+      return;
+    }
+    if (result.status === "join-sesion" && result.session) {
+      setPendingSession(result.session);
+      setSessionResult("You can join this session.");
+      setStep("join");
+      setChecking(false);
+      return;
+    }
+
+    setStep("create");
     setChecking(false);
+  };
+
+  if (checking) {
+    return (
+        <Loader text="loading" />
+    );
   }
 
   return (
@@ -59,9 +133,12 @@ const VideoCallPage = () => {
       <h1 className="text-2xl font-bold mb-4">Video Call</h1>
       <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg flex flex-col items-center">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+          <form
+            onSubmit={step === "create" ? form.handleSubmit(() => { }) : e => { e.preventDefault(); }}
+            className="space-y-8 w-full"
+          >
             {sessionResult && (
-              <div className="bg-gray-100 p-3 rounded-md text-gray-800 flex items-center gap-x-2 select-none">
+              <div className="bg-gray-100 p-3 rounded-md text-gray-800 flex flex-col gap-y-2 select-none">
                 <pre className="whitespace-pre-wrap break-all">{sessionResult}</pre>
               </div>
             )}
@@ -77,25 +154,56 @@ const VideoCallPage = () => {
                       {...field}
                       className="min-h-[80px] resize-none"
                       rows={3}
+                      disabled={step !== "check"}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={checking}>
-              Start Video Call
-            </Button>
+            {step === "check" && (
+              <Button
+                type="button"
+                className="w-full"
+                onClick={handleCheckAvailability}
+                disabled={checking}
+              >
+                Check Availability
+              </Button>
+            )}
+            {step === "create" && (
+              <CreateSessionForm
+                session={session}
+                setSessionResult={setSessionResult}
+                setStep={setStep}
+                form={form}
+                setChecking={setChecking}
+              />
+            )}
+            {step === "join" && (
+              <JoinSessionForm
+                pendingSession={pendingSession}
+                selectedListDate={selectedListDate}
+                setSelectedListDate={setSelectedListDate}
+                setSessionResult={setSessionResult}
+                setStep={setStep}
+                setPendingSession={setPendingSession}
+                setChecking={setChecking}
+                session={session}
+              />
+            )}
           </form>
         </Form>
       </div>
       {userSession && (
         <div className="mt-6 w-full max-w-md bg-green-50 p-4 rounded-lg shadow flex flex-col items-center">
           <div className="mb-2 text-green-800 font-semibold">
-            Your Session: {userSession.topic}
+            You are already in an active session: {userSession.topic}
           </div>
           <Button
-            onClick={() => {
+            className="w-full"
+            onClick={async () => {
+              await generateTokensForBothUsers(session.data?.user?.id || "");
               window.location.href = `/video-call/meeting?sessionId=${userSession.id}`;
             }}
           >
@@ -107,4 +215,4 @@ const VideoCallPage = () => {
   );
 };
 
-export default VideoCallPage;
+export default Page;
