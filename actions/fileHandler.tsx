@@ -22,10 +22,11 @@ export interface SessionUploadInterface {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function uploadFile(fileBuffer: Buffer<any>, fileName: string) {
+export async function uploadFile(filebuffer: Buffer<any>, fileName: string) {
     if (!minioClient) throw new Error("Minio client is not initialized");
     if (!(await minioClient.bucketExists(BUCKET_NAME))) await minioClient.makeBucket(BUCKET_NAME, "us-east-1");
 
+    const fileBuffer = Array.isArray(filebuffer) ? Buffer.from(filebuffer) : filebuffer;
     await minioClient.putObject(
         BUCKET_NAME,
         fileName,

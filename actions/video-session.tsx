@@ -53,7 +53,7 @@ await db.video_session.create({
   data: {
     id: uuid(),
     userId1: userId,
-    userId2: "",
+    userId2: "", // Use a placeholder string
     topic: formattedTopic,
     listdate: list_date,
   },
@@ -93,18 +93,15 @@ const APP_ID = process.env.NEXT_PUBLIC_AGORA_APP_ID!;
 const APP_CERTIFICATE = process.env.NEXT_PUBLIC_AGORA_APP_CERTIFICATE!;
 
 
-export const generateAgoraUid = async (userId: string): Promise<number> => {
+const generateAgoraUid = (userId: string): number => {
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
     hash = (hash << 5) - hash + userId.charCodeAt(i);
-    hash |= 0; // Convert to 32-bit signed integer
+    hash |= 0; // Convert to 32-bit integer
   }
-
-  // Ensure it's in valid UID range (1 to 4294967295)
-  const uid = Math.abs(hash) % 4294967295;
-
-  return uid === 0 ? 1 : uid;
+  return Math.abs(hash) % 4294967295 || 1; 
 };
+
 
 
 export const generateTokensForBothUsers = async (userId: string) => {
@@ -117,7 +114,6 @@ export const generateTokensForBothUsers = async (userId: string) => {
       status: "ACTIVE",
     },
   });
-  console.log("Session:", session);
   if (!session || !session.userId1 || !session.userId2 || !session.topic) {
     return null;
   }
@@ -143,10 +139,6 @@ export const generateTokensForBothUsers = async (userId: string) => {
     RtcRole.PUBLISHER,
     expireTime
   );
-  console.log("uid:", uid1);
-  console.log("uid2:", uid2);
-  console.log("Token User 1:", tokenUser1);
-  console.log("Token User 2:", tokenUser2);
   await db.video_session.update({
     where: { id: session.id },
     data: {
@@ -154,10 +146,11 @@ export const generateTokensForBothUsers = async (userId: string) => {
       tokenuser2: tokenUser2,
     },
   });
+  console.log(uid1, uid2, tokenUser1, tokenUser2);
 
   return {
-    user1: { uid: 1, token: tokenUser1 },
-    user2: { uid: 2, token: tokenUser2 },
+    user1: { uid: uid1, token: tokenUser1 },
+    user2: { uid: uid2, token: tokenUser2 },
   };
 };
 
