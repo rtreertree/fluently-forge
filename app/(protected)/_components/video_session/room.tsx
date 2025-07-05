@@ -139,12 +139,12 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
             return prev.map((u) =>
               u.uid === user.uid
                 ? {
-                    ...u,
-                    videoTrack:
-                      mediaType === "video" ? user.videoTrack : u.videoTrack,
-                    audioTrack:
-                      mediaType === "audio" ? user.audioTrack : u.audioTrack,
-                  }
+                  ...u,
+                  videoTrack:
+                    mediaType === "video" ? user.videoTrack : u.videoTrack,
+                  audioTrack:
+                    mediaType === "audio" ? user.audioTrack : u.audioTrack,
+                }
                 : u
             );
           }
@@ -229,9 +229,9 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
         if (hasJoinedRef.current) {
           // Only unpublish if tracks are published
           if (tracks[0] || tracks[1]) {
-            clientRef.current.unpublish(tracks).catch(() => {});
+            clientRef.current.unpublish(tracks).catch(() => { });
           }
-          clientRef.current.leave().catch(() => {});
+          clientRef.current.leave().catch(() => { });
           hasJoinedRef.current = false;
         }
       }
@@ -250,36 +250,63 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
     return uidNameMap[uid as number] || "Unknown";
   };
 
-const startRecording = async () => {     
-  setUploadStatus("idle");     
-  try {       
-    alert("Starting recording... Please allow microphone access.");       
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });       
-    audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();       
-    recorderRef.current = new Recorder(audioContextRef.current);       
-    await recorderRef.current.init(stream);       
-    await recorderRef.current.start();        
+  const startRecording = async () => {
+    setUploadStatus("idle");
 
-    window.addEventListener('beforeunload', async () => {         
-      const { blob } = await recorderRef.current.stop();         
-      stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());          
+    try {
 
-      const arrayBuffer = await blob.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      recorderRef.current = new Recorder(audioContextRef.current);
+      await recorderRef.current.init(stream);
+      await recorderRef.current.start();
+
+      const stopAndUpload = async () => {
+        if (!recorderRef.current) return;
+
+        const { blob } = await recorderRef.current.stop();
+        stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+
+        const arrayBuffer = await blob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+
+        const fileName = `${sessionId || "unknown"}/${userId}.wav`;
+        setUploadStatus("uploading");
+        console.log("Uploading file:", fileName);
+        try {
+          await uploadFile(Array.from(uint8Array), fileName);
+          setUploadStatus("success");
+          console.log("Upload successful:", fileName);
+        } catch (err) {
+          setUploadStatus("error");
+          console.error("Upload failed:", err);
+        }
+      };
       
-      const fileName = `${sessionId || "unknown"}/${userId}.wav`;
-      setUploadStatus("uploading");
-      try {
-        await uploadFile(Array.from(uint8Array), fileName);
-        setUploadStatus("success");
-      } catch (err) {
-        setUploadStatus("error");
-      }       
-    });     
-  } catch (err) {       
-    setUploadStatus("error");       
-  }   
-};
+      // Auto stop after 19.5 minutes (1170000 ms)
+      recordTimeoutRef.current = setTimeout(stopAndUpload, 1170000); 
+
+      // Stop & upload on page unload
+      const handleUnload = (event: BeforeUnloadEvent) => {
+        if (recorderRef.current && recorderRef.current.isRecording) {
+          // Prevent unload until recording is stopped
+          event.preventDefault();
+          event.returnValue = "";
+          stopAndUpload().then(() => {
+            window.removeEventListener("beforeunload", handleUnload);
+            window.location.reload(); // reload after finishing upload
+          });
+        }
+      };
+
+      window.addEventListener("beforeunload", handleUnload);
+
+    } catch (err) {
+      console.error("Recording error:", err);
+      setUploadStatus("error");
+    }
+  };
+
 
   return (
     <div className="flex flex-col items-center">
