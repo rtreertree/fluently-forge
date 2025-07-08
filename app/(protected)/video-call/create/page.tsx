@@ -146,14 +146,14 @@ const Page = () => {
 
   if (checking) {
     return (
-        <Loader text="loading" />
+      <Loader text="loading" />
     );
   }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-5 bg-gray-50 relative">
       <h1 className="text-2xl font-bold mb-4">Video Call</h1>
-      
+
       <div className="flex gap-6 w-full max-w-5xl justify-center items-start">
         <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg flex flex-col items-center mx-auto">
           <Form {...form}>
@@ -166,7 +166,7 @@ const Page = () => {
                   <pre className="whitespace-pre-wrap break-all">{sessionResult}</pre>
                 </div>
               )}
-              
+
               <FormField
                 control={form.control}
                 name="prompt"
@@ -186,7 +186,7 @@ const Page = () => {
                   </FormItem>
                 )}
               />
-              
+
               <div className="flex justify-center">
                 {step === "check" && (
                   <Button
@@ -227,7 +227,7 @@ const Page = () => {
             </form>
           </Form>
         </div>
-        
+
         {step === "check" && (
           <div className="w-80 bg-white rounded-xl shadow-lg h-fit absolute right-0 top-0 mt-4 mr-4">
             <div className="p-4 border-b bg-gray-50 rounded-t-xl">
@@ -254,12 +254,12 @@ const Page = () => {
                   <p>No available topics at the moment.</p>
                   <p className="text-xs mt-2">Topics will appear here when other users create sessions.</p>
                 </div>
-                )}
-              </div>
+              )}
             </div>
-          )}
-        </div>
-      
+          </div>
+        )}
+      </div>
+
       {userSession && (
         <div className="mt-6 w-full max-w-md bg-green-50 p-4 rounded-lg shadow flex flex-col items-center">
           <div className="mb-2 text-green-800 font-semibold">
