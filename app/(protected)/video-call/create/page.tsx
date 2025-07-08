@@ -12,6 +12,8 @@ import {
   generateTokensForBothUsers,
   getUserVideoSession,
   getAllVideoSessions,
+  cancelOldPendingSessions,
+  cancelExceedingAppointmentSession,
 } from "@/actions/video-session";
 import { validateTopic } from "@/actions/openaiHandler";
 import CreateSessionForm from "@/app/(protected)/_components/video_session/createsessionForm";
@@ -50,6 +52,13 @@ const Page = () => {
   const [activeTopics, setActiveTopics] = useState<string[]>([]);
 
   const session = useSession();
+
+
+  // Cancel old pending sessions on mount
+  useEffect(() => {
+    cancelOldPendingSessions();
+    cancelExceedingAppointmentSession();
+  }, []);
 
   // Fetch user's session on mount and when sessionResult changes
   useEffect(() => {
