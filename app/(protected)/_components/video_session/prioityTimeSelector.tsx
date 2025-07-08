@@ -68,9 +68,9 @@ const PriorityTimeSelector = ({ name, label }: PriorityTimeSelectorProps) => {
   return (
     <div className="mb-4">
       <label className="block font-semibold mb-1">{label}</label>
-      <div className="flex gap-4 items-start">
+      <div className="flex gap-8 items-start justify-center w-full max-w-xl mx-auto">
         {/* Start */}
-        <div className="flex flex-col items-center flex-1">
+        <div className="flex flex-col items-center flex-1 min-w-0">
           <span className="text-xs text-gray-500 mb-1">Start</span>
           <Controller
             name={`${name}.startDate`}
@@ -104,7 +104,7 @@ const PriorityTimeSelector = ({ name, label }: PriorityTimeSelectorProps) => {
         </div>
         <span className="mx-2 mt-7">-</span>
         {/* End */}
-        <div className="flex flex-col items-center flex-1">
+        <div className="flex flex-col items-center flex-1 min-w-0">
           <span className="text-xs text-gray-500 mb-1">End</span>
           <Controller
             name={`${name}.endDate`}
@@ -147,6 +147,7 @@ const PriorityTimeSelector = ({ name, label }: PriorityTimeSelectorProps) => {
             )}
           />
         </div>
+        {/* No extra flex-1 divs, let flex-1 on each side handle equal spacing */}
       </div>
       {formState.errors[name]?.message && (
         <div className="text-red-500 text-sm mb-2">

@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { VideoPlayer } from "./videoplayer";
 import {
   getVideoSessionTopicAndToken,
@@ -25,7 +25,7 @@ type VideoRoomProps = {
   setLocalTracks: (tracks: [any, any]) => void;
 };
 
-export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
+export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLocalTracks }, ref) => {
   const [users, setUsers] = useState<User[]>([]);
   const [CHANNEL, setCHANNEL] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -250,63 +250,43 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
     return uidNameMap[uid as number] || "Unknown";
   };
 
+  const stopAndUpload = async () => {
+    if (!recorderRef.current) return;
+    setUploadStatus("uploading");
+    try {
+      const { blob } = await recorderRef.current.stop();
+      if (recorderRef.current.stream) {
+        recorderRef.current.stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+      }
+      const arrayBuffer = await blob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const fileName = `${sessionId || "unknown"}/${userId}.wav`;
+      await uploadFile(Array.from(uint8Array), fileName);
+      setUploadStatus("success");
+      console.log("Upload successful:", fileName);
+    } catch (err) {
+      setUploadStatus("error");
+      console.error("Upload failed:", err);
+    }
+  };
+
+  // Start recording
   const startRecording = async () => {
     setUploadStatus("idle");
-
     try {
-
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       recorderRef.current = new Recorder(audioContextRef.current);
       await recorderRef.current.init(stream);
+      recorderRef.current.stream = stream;
       await recorderRef.current.start();
-
-      const stopAndUpload = async () => {
-        if (!recorderRef.current) return;
-
-        const { blob } = await recorderRef.current.stop();
-        stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
-
-        const arrayBuffer = await blob.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-
-        const fileName = `${sessionId || "unknown"}/${userId}.wav`;
-        setUploadStatus("uploading");
-        console.log("Uploading file:", fileName);
-        try {
-          await uploadFile(Array.from(uint8Array), fileName);
-          setUploadStatus("success");
-          console.log("Upload successful:", fileName);
-        } catch (err) {
-          setUploadStatus("error");
-          console.error("Upload failed:", err);
-        }
-      };
-      
-      // Auto stop after 19.5 minutes (1170000 ms)
-      recordTimeoutRef.current = setTimeout(stopAndUpload, 1170000); 
-
-      // Stop & upload on page unload
-      const handleUnload = (event: BeforeUnloadEvent) => {
-        if (recorderRef.current && recorderRef.current.isRecording) {
-          // Prevent unload until recording is stopped
-          event.preventDefault();
-          event.returnValue = "";
-          stopAndUpload().then(() => {
-            window.removeEventListener("beforeunload", handleUnload);
-            window.location.reload(); // reload after finishing upload
-          });
-        }
-      };
-
-      window.addEventListener("beforeunload", handleUnload);
-
     } catch (err) {
       console.error("Recording error:", err);
       setUploadStatus("error");
     }
   };
 
+  useImperativeHandle(ref, () => ({ stopAndUpload }), [stopAndUpload]);
 
   return (
     <div className="flex flex-col items-center">
@@ -322,6 +302,11 @@ export const VideoRoom = ({ micOn, camOn, setLocalTracks }: VideoRoomProps) => {
           />
         ))}
       </div>
+      <div className="mt-2 text-xs text-gray-500">
+        {uploadStatus === "uploading" && "Uploading audio..."}
+        {uploadStatus === "success" && "Audio upload complete."}
+        {uploadStatus === "error" && "Audio upload failed."}
+      </div>
     </div>
   );
-};
+});
