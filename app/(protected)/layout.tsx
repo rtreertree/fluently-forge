@@ -28,7 +28,10 @@ export default async function RootLayout({
 				<AppSidebar />
 				<SidebarInset className="overflow-hidden h-screen">
 					<SidebarBreadcrumb />
-					{children}
+					<div className="w-full h-full">
+						{children}
+					</div>
+					
 				</SidebarInset>
 			</SidebarProvider>
 		</SessionProvider>
