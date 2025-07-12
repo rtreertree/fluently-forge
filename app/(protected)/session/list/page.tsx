@@ -1,31 +1,38 @@
 "use client";
 
-// import { SessionMonologue } from "../../_components/session/monologue/session-monologue";
-import Loader from "@/components/suspend/loading";
-import { ListBox } from "../../_components/session/list/session-list";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import router from "next/router";
-
+import { useRouter } from "next/router";
+import Loader from "@/components/suspend/loading";
+import { ListBox, ListBoxProps, SessionListItem } from "../../_components/session/list/session-list";
+import { getSessionList } from "@/actions/session";
 
 const SessionListPage = () => {
-    const session = useSession();
-    const [isLoading, setIsLoading] = useState(true);
+    const { data: session, status } = useSession();
 
-    // Check if session is loading or not
-    if (!session.data?.user) {
-        router.push("/auth/login");
+    const [isLoading, setIsLoading] = useState(true);
+    const [sessionList, setSessionList] = useState<SessionListItem[]>([]);
+
+    useEffect(() => {
+        if (status === "authenticated" && session?.user?.id) {
+            getSessionList(session.user.id)
+                .then((data) => {
+                    console.log("Session List Data:", data);
+                    setSessionList(data);
+                    setIsLoading(false);
+                })
+                .catch((error) => {
+                    console.error("Error fetching session list:", error);
+                    setIsLoading(false);
+                });
+        }
+    }, [status, session?.user?.id]);
+
+    if (status === "loading" || isLoading) {
+        return <Loader text="Loading session details" />;
     }
 
-
-    // Simulate loading data
-    setTimeout(() => {
-        setIsLoading(false);
-    }, 1000);
-
-    return (
-        isLoading ? <Loader text={""} /> : <ListBox data={[]} />
-    );
+    return <ListBox data={sessionList} />;
 };
 
 export default SessionListPage;

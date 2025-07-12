@@ -19,14 +19,17 @@ const mockData = Array.from({ length: 100 }).map((_, i) => ({
 	title: `IELTS Topic ${i + 1}`,
 }))
 
+export interface SessionListItem {
+	date: string
+	status: string
+	type: string
+	title: string
+	ssid: string
+	assess: string
+}
+
 export interface ListBoxProps {
-	data: {
-		date: string
-		status: string
-		type: string
-		title: string
-		ssid: string
-	}[]
+	data: SessionListItem[]
 }
 
 export function ListBox({ data }: ListBoxProps) {
@@ -35,8 +38,8 @@ export function ListBox({ data }: ListBoxProps) {
 	const [currentPage, setCurrentPage] = React.useState(1)
 	const itemsPerPage = 10
 
-	const filteredData = mockData.filter((item) =>
-		item.title.toLowerCase().includes(search.toLowerCase())
+	const filteredData = (data ?? []).filter((item) =>
+		item.title?.toLowerCase().includes(search.toLowerCase())
 	)
 
 	const totalPages = Math.ceil(filteredData.length / itemsPerPage)
@@ -84,8 +87,17 @@ export function ListBox({ data }: ListBoxProps) {
 									<TableCell>{item.type}</TableCell>
 									<TableCell>{item.title}</TableCell>
 									<TableCell className="text-right">
-										<Button variant="ghost" size="sm">
-											Edit
+										<Button
+											variant="outline"
+											size="sm"
+											disabled={item.assess !== "ASSESSED"}
+											onClick={() => {
+												if (item.assess === "ASSESSED") {
+													console.log("SSID:", item.ssid)
+												}
+											}}
+										>
+											view
 										</Button>
 									</TableCell>
 								</TableRow>
@@ -102,70 +114,71 @@ export function ListBox({ data }: ListBoxProps) {
 				</div>
 			</div>
 
-			{/* Pagination */}
-			<div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-	<span className="text-sm text-muted-foreground">
-		Page {currentPage} of {totalPages}
-	</span>
+			{filteredData.length > 0 && (
+				<div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+					<span className="text-sm text-muted-foreground">
+						Page {currentPage} of {totalPages}
+					</span>
 
-	{/* Centered pagination group */}
-	<div className="flex-1 flex justify-center items-center gap-2 flex-wrap">
-		<Button
-			variant="outline"
-			size="sm"
-			onClick={goToPreviousPage}
-			disabled={currentPage === 1}
-		>
-			<ChevronLeft />
-		</Button>
+					{/* Centered pagination group */}
+					<div className="flex-1 flex justify-center items-center gap-2 flex-wrap">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={goToPreviousPage}
+							disabled={currentPage === 1}
+						>
+							<ChevronLeft />
+						</Button>
 
-		{Array.from({ length: totalPages }, (_, i) => i + 1)
-			.filter((page) => {
-				if (currentPage <= 3) return page <= 5;
-				if (currentPage >= totalPages - 2) return page >= totalPages - 4;
-				return Math.abs(page - currentPage) <= 2;
-			})
-			.map((page) => (
-				<Button
-					key={page}
-					variant={page === currentPage ? "default" : "outline"}
-					size="sm"
-					onClick={() => setCurrentPage(page)}
-				>
-					{page}
-				</Button>
-			))}
+						{Array.from({ length: totalPages }, (_, i) => i + 1)
+							.filter((page) => {
+								if (currentPage <= 3) return page <= 5;
+								if (currentPage >= totalPages - 2) return page >= totalPages - 4;
+								return Math.abs(page - currentPage) <= 2;
+							})
+							.map((page) => (
+								<Button
+									key={page}
+									variant={page === currentPage ? "default" : "outline"}
+									size="sm"
+									onClick={() => setCurrentPage(page)}
+								>
+									{page}
+								</Button>
+							))}
 
-		<Button
-			variant="outline"
-			size="sm"
-			onClick={goToNextPage}
-			disabled={currentPage === totalPages}
-		>
-			<ChevronRight />
-		</Button>
-	</div>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={goToNextPage}
+							disabled={currentPage === totalPages}
+						>
+							<ChevronRight />
+						</Button>
+					</div>
 
-	{/* Right-aligned First/Last */}
-	<div className="flex items-center gap-2">
-		<Button
-			variant="outline"
-			size="sm"
-			onClick={() => setCurrentPage(1)}
-			disabled={currentPage === 1}
-		>
-			First
-		</Button>
-		<Button
-			variant="outline"
-			size="sm"
-			onClick={() => setCurrentPage(totalPages)}
-			disabled={currentPage === totalPages}
-		>
-			Last
-		</Button>
-	</div>
-</div>
+					{/* Right-aligned First/Last */}
+					<div className="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => setCurrentPage(1)}
+							disabled={currentPage === 1}
+						>
+							First
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => setCurrentPage(totalPages)}
+							disabled={currentPage === totalPages}
+						>
+							Last
+						</Button>
+					</div>
+				</div>
+			)}
 		</div>
 	)
 }

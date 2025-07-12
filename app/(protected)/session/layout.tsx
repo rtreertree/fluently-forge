@@ -44,5 +44,5 @@ export default function RootLayout({
 		return <Loader text="Loading..." />;
 	}
 
-	return <>{children}</>;
+	return <div>{children}</div>;
 }
