@@ -50,6 +50,12 @@ enum SessionStatus {
     CANCELLED
 }
 
+enum AssessmentStatus {
+    PENDING
+    ASSESSED
+    NOT_ASSESSED
+}
+
 model User {
     id            String       @id @default(uuid())
     name          String?
@@ -106,6 +112,8 @@ model sessions {
     token          String?
     question       String?
     bulletPoints   String?
+    startedAssessAt DateTime? @map("started_assess_at")
+    assessmentStatus AssessmentStatus @map("assessment_status") @default(NOT_ASSESSED)
     assessedDetail String?       @map("assessed_detail")
 
     @@map("sessions")

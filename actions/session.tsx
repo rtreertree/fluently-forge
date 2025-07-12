@@ -7,6 +7,7 @@ import { LogType, SessionType } from "@prisma/client";
 import { db } from '@/lib/db';
 import { generateScenarioPrompt, getMonologueQuestion } from './openaiHandler';
 import { v4 as uuid } from 'uuid';
+import { SessionListItem } from '@/app/(protected)/_components/session/list/session-list';
 
 export interface createSessionInterface {
     userId: string;
@@ -261,3 +262,23 @@ export const offerSession = async (offerSDP: string, EPHEMERAL_KEY: string) => {
 
     return await sdpResponse.text();
 };
+
+export async function getSessionList(userId: string) {
+    const sessions = await db.sessions.findMany({
+        where: {
+            userId: userId,
+        },
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
+
+    return sessions.map((session) => ({
+        ssid: session.id,
+        type: session.type.toString().toLocaleLowerCase(),
+        title: session.topic,
+        status: session.status,
+        assess: session.assessmentStatus?.toString(),
+        date: new Date(session.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: '2-digit', year: 'numeric'})
+    }));
+}
