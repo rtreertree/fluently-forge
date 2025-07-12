@@ -73,6 +73,7 @@ export const AppSidebar = () => {
                                                 <span>{item.title}</span>
                                             </Link>
                                         </SidebarMenuButton>
+
                                         <div
                                             className={`
             transition-all duration-300 ease-in-out

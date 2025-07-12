@@ -3,12 +3,68 @@ import { db } from "@/lib/db";
 import { v4 as uuid } from "uuid";
 import { RtcTokenBuilder, RtcRole } from 'agora-access-token';
 
+export const cancelOldPendingSessions = async () => {
+  const sessions = await db.video_session.findMany({
+    where: {
+      OR: [
+        { userId1: "" },
+        { userId2: "" }
+      ],
+      status: "PENDING",
+    },
+    select: { id: true, createdAt: true },
+  });
+  const now = new Date();
+  const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+  const expiredSessions = sessions.filter(s => {
+    if (!s.createdAt) return false;
+    return (now.getTime() - new Date(s.createdAt).getTime()) >= threeDaysMs;
+  });
+  if (expiredSessions.length === 0) return 0;
+  const updatePromises = expiredSessions.map(s =>
+    db.video_session.update({
+      where: { id: s.id },
+      data: { status: "CANCELLED" },
+    })
+  );
+  await Promise.all(updatePromises);
+}
 
+export const cancelExceedingAppointmentSession = async () => {
+  const sessions = await db.video_session.findMany({
+    where: {
+      status: "ACTIVE",
+    },
+    select: { id: true, startedAt: true },
+  });
+  const now = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);
+  const thirtyMinutesMs = 30 * 60 * 1000;
+  const expiredSessions = sessions.filter(s => {
+    if (!s.startedAt) return false;
+    return (now.getTime() - new Date(s.startedAt).getTime()) >= thirtyMinutesMs;
+  });
+  console.log(now);
+  console.log("All active sessions:", sessions);
+  console.log("Expired sessions exceeding 30 minutes:", expiredSessions.length);
+  if (expiredSessions.length === 0) return 0;
+  const updatePromises = expiredSessions.map(s =>
+    db.video_session.update({
+      where: { id: s.id },
+      data: { status: "CANCELLED" },
+    })
+  );
+  await Promise.all(updatePromises);
+
+  sessions.forEach(s => {
+    if (!s.startedAt) return;
+    const diff = now.getTime() - new Date(s.startedAt).getTime();
+  });
+}
 
 export const isVideoSessionActive = async (
   userId: string,
   topic: string,
-  list_date: string[] 
+  list_date: string[]
 ) => {
   const formattedTopic = topic.toUpperCase().replace(/\s+/g, "");
 
@@ -27,37 +83,37 @@ export const isVideoSessionActive = async (
     return "already-in-session";
   }
 
-    const videoSession = await db.video_session.findFirst({
-      where: {
-        OR: [
-          { userId1: "" },
-          { userId2: "" }
-        ],
-        topic: formattedTopic,
-        status: "PENDING"
+  const videoSession = await db.video_session.findFirst({
+    where: {
+      OR: [
+        { userId1: "" },
+        { userId2: "" }
+      ],
+      topic: formattedTopic,
+      status: "PENDING"
+    },
+  });
+  if (videoSession) {
+    await db.video_session.update({
+      where: { id: videoSession.id },
+      data: {
+        userId2: userId,
+        status: "ACTIVE"
       },
     });
-    if (videoSession) {
-      await db.video_session.update({
-        where: { id: videoSession.id },
-        data: {
-          userId2: userId,
-          status: "ACTIVE"
-        },
-      });
-      return "joined-session";
+    return "joined-session";
   }
 
   if (!videoSession) {
-await db.video_session.create({
-  data: {
-    id: uuid(),
-    userId1: userId,
-    userId2: "",
-    topic: formattedTopic,
-    listdate: list_date,
-  },
-});
+    await db.video_session.create({
+      data: {
+        id: uuid(),
+        userId1: userId,
+        userId2: "", // Use a placeholder string
+        topic: formattedTopic,
+        listdate: list_date,
+      },
+    });
     return "created-session";
   }
 
@@ -83,9 +139,10 @@ export const getUserVideoSession = async (userId: string) => {
 export const endVideoSession = async (sessionId: string) => {
   return db.video_session.update({
     where: { id: sessionId },
-    data: { status: "COMPLETED",
-            endedAt: new Date(new Date().getTime() + 7 * 60 * 60 * 1000)
-     },
+    data: {
+      status: "COMPLETED",
+      endedAt: new Date(new Date().getTime() + 7 * 60 * 60 * 1000)
+    },
   });
 };
 
@@ -93,18 +150,15 @@ const APP_ID = process.env.NEXT_PUBLIC_AGORA_APP_ID!;
 const APP_CERTIFICATE = process.env.NEXT_PUBLIC_AGORA_APP_CERTIFICATE!;
 
 
-export const generateAgoraUid = async (userId: string): Promise<number> => {
+const generateAgoraUid = (userId: string): number => {
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
     hash = (hash << 5) - hash + userId.charCodeAt(i);
-    hash |= 0; // Convert to 32-bit signed integer
+    hash |= 0; // Convert to 32-bit integer
   }
-
-  // Ensure it's in valid UID range (1 to 4294967295)
-  const uid = Math.abs(hash) % 4294967295;
-
-  return uid === 0 ? 1 : uid;
+  return Math.abs(hash) % 4294967295 || 1;
 };
+
 
 
 export const generateTokensForBothUsers = async (userId: string) => {
@@ -117,7 +171,6 @@ export const generateTokensForBothUsers = async (userId: string) => {
       status: "ACTIVE",
     },
   });
-  console.log("Session:", session);
   if (!session || !session.userId1 || !session.userId2 || !session.topic) {
     return null;
   }
@@ -143,10 +196,6 @@ export const generateTokensForBothUsers = async (userId: string) => {
     RtcRole.PUBLISHER,
     expireTime
   );
-  console.log("uid:", uid1);
-  console.log("uid2:", uid2);
-  console.log("Token User 1:", tokenUser1);
-  console.log("Token User 2:", tokenUser2);
   await db.video_session.update({
     where: { id: session.id },
     data: {
@@ -154,10 +203,11 @@ export const generateTokensForBothUsers = async (userId: string) => {
       tokenuser2: tokenUser2,
     },
   });
+  console.log(uid1, uid2, tokenUser1, tokenUser2);
 
   return {
-    user1: { uid: 1, token: tokenUser1 },
-    user2: { uid: 2, token: tokenUser2 },
+    user1: { uid: uid1, token: tokenUser1 },
+    user2: { uid: uid2, token: tokenUser2 },
   };
 };
 
@@ -308,7 +358,7 @@ export const getSessionListDates = async (sessionId: string) => {
 export const joinSessionWithStartAt = async (
   sessionId: string,
   userId: string,
-  startedAt: Date, 
+  startedAt: Date,
 ) => {
 
   return db.video_session.update({

@@ -1,7 +1,6 @@
 "use server";
 import { db } from "@/lib/db";
-import { time } from "console";
-import { date } from "zod";
+
 export interface DailyStreak {
     streak: number;
 }
@@ -19,14 +18,11 @@ export const getDailyStreak = async (userId: string) => {
         orderBy: { createdAt: "asc" },
         select: { createdAt: true },
     });
-    let video_sessions: { startedAt?: Date }[] = [];
+    let video_sessions;
     try {
         video_sessions = await db.video_session.findMany({
             where: {
-                OR: [
-                    { userId1: userId },
-                    { userId2: userId }
-                ],
+                OR: [{ userId1: userId }, { userId2: userId }],
                 status: "COMPLETED",
             },
             orderBy: { startedAt: "asc" },
@@ -34,20 +30,24 @@ export const getDailyStreak = async (userId: string) => {
         });
     } catch (e: any) {
         // If the error is about missing column or table, treat as empty list
-        if (e.code === 'P2022' || e.code === 'P2021') {
+        if (e.code === "P2022" || e.code === "P2021") {
             // P2022: Column does not exist, P2021: Table does not exist
-            video_sessions = [];
-            console.log("video_sessions table or startedAt column missing, returning empty list.");
+            video_sessions = [] as Awaited<
+                ReturnType<typeof db.video_session.findMany>
+            >;
+            console.log(
+                "video_sessions table or startedAt column missing, returning empty list."
+            );
         } else {
             throw e; // rethrow other errors
         }
     }
     // Combine sessions and video_sessions into one array of dates
     const allSessionDates = [
-        ...sessions.map(s => ({ date: new Date(s.createdAt) })),
+        ...sessions.map((s) => ({ date: new Date(s.createdAt) })),
         ...video_sessions
-            .filter(v => v.startedAt)
-            .map(v => ({ date: new Date(v.startedAt as Date) }))
+            .filter((v) => v.startedAt)
+            .map((v) => ({ date: new Date(v.startedAt as Date) })),
     ];
 
     if (!allSessionDates || allSessionDates.length === 0) {
@@ -84,17 +84,13 @@ export const getDailyStreak = async (userId: string) => {
         }),
         // video_sessions.startedAt is already ICT, just normalize to start of day
         ...video_sessions
-            .filter(v => v.startedAt)
-            .map(v => {
+            .filter((v) => v.startedAt)
+            .map((v) => {
                 const utc = new Date(v.startedAt as Date);
                 utc.setUTCHours(0, 0, 0, 0);
                 return utc;
-            })
+            }),
     ];
-    console.log("session", sessions)
-    console.log("video", video_sessions)
-    console.log("All Session Dates:", allSessionDates);
-    console.log("Session Dates:", sessionDates);
     // Remove duplicate days (only one session per day counts)
     const uniqueDates = Array.from(
         new Set(sessionDates.map((d) => d.getTime()))
@@ -182,14 +178,11 @@ export const getWeeklyProgress = async (userId: string) => {
         select: { createdAt: true },
     });
 
-    let video_sessions = [];
+    let video_sessions;
     try {
         video_sessions = await db.video_session.findMany({
             where: {
-                OR: [
-                    { userId1: userId },
-                    { userId2: userId }
-                ],
+                OR: [{ userId1: userId }, { userId2: userId }],
                 status: "COMPLETED",
                 startedAt: {
                     gte: monday,
@@ -199,9 +192,13 @@ export const getWeeklyProgress = async (userId: string) => {
             select: { startedAt: true },
         });
     } catch (e: any) {
-        if (e.code === 'P2022' || e.code === 'P2021') {
-            video_sessions = [];
-            console.log("video_sessions table or startedAt column missing, returning empty list.");
+        if (e.code === "P2022" || e.code === "P2021") {
+            video_sessions = [] as Awaited<
+                ReturnType<typeof db.video_session.findMany>
+            >;
+            console.log(
+                "video_sessions table or startedAt column missing, returning empty list."
+            );
         } else {
             throw e;
         }
@@ -216,11 +213,10 @@ export const getWeeklyProgress = async (userId: string) => {
             return ict.toISOString().slice(0, 10);
         }),
         ...video_sessions
-            .filter(v => v.startedAt)
+            .filter((v) => v.startedAt)
             .map((v) => {
                 const ict = new Date(v.startedAt as Date);
-                ict.setHours(0, 0, 0, 0);
-                // Convert to ISO string and take date part
+                ict.setUTCHours(0, 0, 0, 0);
                 return new Date(ict.getTime() - ict.getTimezoneOffset() * 60000)
                     .toISOString()
                     .slice(0, 10);
@@ -251,7 +247,7 @@ export const getTodaySessionTypeCounts = async (userId: string) => {
 
     // Convert ICT start/end back to UTC for DB query
     const utcStart = new Date(ictStart.getTime() - 7 * 60 * 60 * 1000);
-    const utcEnd = new Date(ictEnd.getTime() - 7 * 60 * 60 * 1000);
+    const utcEnd = new Date(ictEnd.getTime());
 
     // Find all sessions for today
     const sessions = await db.sessions.findMany({
@@ -264,25 +260,24 @@ export const getTodaySessionTypeCounts = async (userId: string) => {
         },
         select: { type: true },
     });
-    let video_sessions_today = [];
+    let video_sessions_today;
     try {
         video_sessions_today = await db.video_session.findMany({
             where: {
-                OR: [
-                    { userId1: userId },
-                    { userId2: userId }
-                ],
+                OR: [{ userId1: userId }, { userId2: userId }],
                 status: "COMPLETED",
                 startedAt: {
                     gte: utcStart,
                     lte: utcEnd,
                 },
-            }
+            },
         });
     } catch (e: any) {
-        if (e.code === 'P2022' || e.code === 'P2021') {
+        if (e.code === "P2022" || e.code === "P2021") {
             video_sessions_today = [];
-            console.log("video_sessions table or startedAt column missing, returning empty list.");
+            console.log(
+                "video_sessions table or startedAt column missing, returning empty list."
+            );
         } else {
             throw e;
         }
