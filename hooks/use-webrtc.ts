@@ -138,7 +138,7 @@ const useWebRTCAudioSession = (
                 console.error('Error during cleanup:', err);
             });
         };
-    // eslint-disable-next-line
+        // eslint-disable-next-line
     }, []); // Run once on mount/unmount
 
     // ----- Audio Visualisation -----
@@ -208,6 +208,12 @@ const useWebRTCAudioSession = (
             setSessionID(session.id);
 
             setStatus("Requesting microphone access...");
+            console.log("Requesting microphone access...");
+
+            navigator.mediaDevices.enumerateDevices().then(devices => {
+                const audioInputs = devices.filter(device => device.kind === 'audioinput');
+                console.log("Available audio inputs:", audioInputs);
+            });
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             audioStreamRef.current = stream;
             setupAudioVisualization(stream);
@@ -217,10 +223,13 @@ const useWebRTCAudioSession = (
             const audioEl = document.createElement("audio");
             audioEl.autoplay = true;
 
+            console.log("Setting up peer connection...");
+
+
             // ----- Setup remote track handler -----
             pc.ontrack = (e) => {
                 audioEl.srcObject = e.streams[0];
-                
+
                 // Analysis for incoming (remote) audio
                 const audioContext = new (window.AudioContext || window.AudioContext)();
                 const source = audioContext.createMediaStreamSource(e.streams[0]);
