@@ -73,13 +73,10 @@ const MeetingPage = () => {
       }
     }, 1000);
 
-    // Handle page refresh/unload
+    // Alert user if they try to refresh/leave
     const handleUnload = (event: BeforeUnloadEvent) => {
-      if (videoRoomRef.current && videoRoomRef.current.stopAndUpload) {
-        event.preventDefault();
-        event.returnValue = "";
-        videoRoomRef.current.stopAndUpload();
-      }
+      event.preventDefault();
+      event.returnValue = ""; // This triggers the browser warning
     };
     window.addEventListener("beforeunload", handleUnload);
 
