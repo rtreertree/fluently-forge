@@ -7,7 +7,6 @@ import {
 } from "@/actions/video-session";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { uploadFile } from "@/actions/fileHandler";
 import Recorder from "recorder-js";
 
 const APP_ID = process.env.NEXT_PUBLIC_AGORA_APP_ID!;
@@ -74,7 +73,6 @@ export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLoc
       setToken(result.token);
       setAgoraUid(result.uid);
 
-      // Only map own UID to name
       const myName = session?.user?.name || sessionUserNames[0];
       setUidNameMap({
         [result.uid]: myName,
@@ -82,7 +80,6 @@ export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLoc
     }
   };
 
-  // Fetch channel/token on mount
   useEffect(() => {
     fetchChannelAndToken();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -202,9 +199,6 @@ export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLoc
         client.publish([microphoneTrack, cameraTrack]);
         tracks[0] = microphoneTrack;
         tracks[1] = cameraTrack;
-        if (cameraTrack) cameraTrack.play(`local-player-${uid}`);
-
-        // <-- Add this to start recording automatically
         if (!isRecording) {
           startRecording();
         }
@@ -252,18 +246,43 @@ export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLoc
 
   const stopAndUpload = async () => {
     if (!recorderRef.current) return;
+    if (!token || !sessionId || !userId) {
+      alert("Missing token, sessionId, or userId. Please reload and try again.");
+      setUploadStatus("error");
+      return;
+    }
     setUploadStatus("uploading");
     try {
-      const { blob } = await recorderRef.current.stop();
+      const { blob: userBlob } = await recorderRef.current.stop();
+
+
       if (recorderRef.current.stream) {
         recorderRef.current.stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
       }
-      const arrayBuffer = await blob.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      const fileName = `${sessionId || "unknown"}/${userId}.wav`;
-      await uploadFile(Array.from(uint8Array), fileName);
+
+      const formData = new FormData();
+      formData.append("user-audio", userBlob, `${sessionId}/${userId}.wav`);
+      formData.append("user-id", userId);
+      formData.append("session-id", sessionId);
+
+      const response = await fetch("/api/session/video-audio", {
+        method: "POST",
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Upload failed:", errorText, "Status:", response.status);
+        alert(`Upload failed: ${errorText} (Status: ${response.status})`);
+        setUploadStatus("error");
+        throw new Error("Upload failed");
+      }
+
       setUploadStatus("success");
-      console.log("Upload successful:", fileName);
+      console.log("Upload successful");
     } catch (err) {
       setUploadStatus("error");
       console.error("Upload failed:", err);
