@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import {
@@ -74,7 +73,7 @@ const Page = () => {
   // Fetch all active topics for suggestion
   useEffect(() => {
     const fetchTopics = async () => {
-      const sessions = await getAllVideoSessions();
+      const sessions = await getAllVideoSessions(session.data?.user?.id || "");
       const topics = Array.from(new Set((sessions || [])
         .filter((s: any) =>
           s.status === "PENDING" &&
@@ -126,7 +125,7 @@ const Page = () => {
     setServerStatus(result.status);
 
     if (result.status === "already-in-session") {
-      setSessionResult("You are already in an active session.");
+      setSessionResult("You are already in too many active sessions.");
       setChecking(false);
       return;
     }
