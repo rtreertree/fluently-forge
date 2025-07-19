@@ -241,12 +241,11 @@ export const getTodaySessionTypeCounts = async (userId: string) => {
     ictNow.setUTCHours(0, 0, 0, 0);
 
     // Start and end of today in ICT
-    const ictStart = new Date(ictNow);
+    const utcStart = new Date(ictNow);
     const ictEnd = new Date(ictNow);
     ictEnd.setUTCHours(23, 59, 59, 999);
 
     // Convert ICT start/end back to UTC for DB query
-    const utcStart = new Date(ictStart.getTime() - 7 * 60 * 60 * 1000);
     const utcEnd = new Date(ictEnd.getTime());
 
     // Find all sessions for today
