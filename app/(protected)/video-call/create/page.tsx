@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import {
@@ -14,6 +13,8 @@ import {
   getAllVideoSessions,
   cancelOldPendingSessions,
   cancelExceedingAppointmentSession,
+  configpendingSession,
+  cancelPendingSessionById
 } from "@/actions/video-session";
 import { validateTopic } from "@/actions/openaiHandler";
 import CreateSessionForm from "@/app/(protected)/_components/video_session/createsessionForm";
@@ -50,6 +51,7 @@ const Page = () => {
   const [serverStatus, setServerStatus] = useState<string | null>(null);
   const [userSession, setUserSession] = useState<any>(null);
   const [activeTopics, setActiveTopics] = useState<string[]>([]);
+  const [pendingSessions, setPendingSessions] = useState<any[]>([]);
 
   const session = useSession();
 
@@ -74,7 +76,7 @@ const Page = () => {
   // Fetch all active topics for suggestion
   useEffect(() => {
     const fetchTopics = async () => {
-      const sessions = await getAllVideoSessions();
+      const sessions = await getAllVideoSessions(session.data?.user?.id || "");
       const topics = Array.from(new Set((sessions || [])
         .filter((s: any) =>
           s.status === "PENDING" &&
@@ -86,6 +88,17 @@ const Page = () => {
     };
     fetchTopics();
   }, []);
+
+  // Fetch all pending sessions for the user
+  useEffect(() => {
+    const fetchPendingSessions = async () => {
+      const userId = session.data?.user?.id;
+      if (!userId) return;
+      const sessions = await configpendingSession(userId);
+      setPendingSessions(sessions ? [sessions] : []);
+    };
+    fetchPendingSessions();
+  }, [session.data?.user?.id, sessionResult]);
 
   const form = useForm<z.infer<typeof videoCallSchema>>({
     resolver: zodResolver(videoCallSchema),
@@ -126,7 +139,7 @@ const Page = () => {
     setServerStatus(result.status);
 
     if (result.status === "already-in-session") {
-      setSessionResult("You are already in an active session.");
+      setSessionResult("You are already in too many active sessions.");
       setChecking(false);
       return;
     }
@@ -151,6 +164,17 @@ const Page = () => {
 
   const handleTopicSelect = (topic: string) => {
     form.setValue("prompt", topic);
+  };
+
+  const handleCancelPendingSession = async (sessionId: string) => {
+    await cancelPendingSessionById(sessionId);
+    setSessionResult("Pending session cancelled.");
+    // Refresh pending sessions
+    const userId = session.data?.user?.id;
+    if (userId) {
+      const sessions = await configpendingSession(userId);
+      setPendingSessions(sessions ? [sessions] : []);
+    }
   };
 
   if (checking) {
@@ -283,6 +307,34 @@ const Page = () => {
           >
             Join Session
           </Button>
+        </div>
+      )}
+
+      {pendingSessions.length > 0 && (
+        <div className="w-80 bg-white rounded-xl shadow-lg h-fit absolute left-0 top-0 mt-4 ml-4">
+          <div className="p-4 border-b bg-yellow-50 rounded-t-xl">
+            <h3 className="font-semibold text-lg text-yellow-800">Your Pending Sessions</h3>
+            <p className="text-sm text-yellow-700 mt-1">
+              Click "Cancel" to remove a pending session.
+            </p>
+          </div>
+          <div className="max-h-80 overflow-y-auto">
+            {pendingSessions.map((ps) => (
+              <div
+                key={ps.id}
+                className="p-4 border-b last:border-b-0 flex justify-between items-center hover:bg-yellow-100 transition-colors"
+              >
+                <span className="text-sm text-yellow-900 break-words">{ps.topic}</span>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleCancelPendingSession(ps.id)}
+                  className="ml-2"
+                >
+                  Cancel
+                </Button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

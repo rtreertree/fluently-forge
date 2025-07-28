@@ -43,10 +43,9 @@ const DailyStreakPage = () => {
     }, [userId]);
 
     return !isPending ? (
-        <div className="flex flex-row items-start min-h-screen bg-white pt-10 select-none">
-            {/* Main Streak Section */}
-            <div className="flex flex-col items-center flex-1">
-                {/* Streak Number Top-Center */}
+        <div className="relative min-h-screen bg-white select-none">
+            {/* Main Streak Section - Absolutely Centered */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
                 <div className="flex flex-col items-center mb-10">
                     <span className="text-6xl font-extrabold text-orange-500 flex items-center gap-2">
                         <Flame size={48} className="inline-block" />
@@ -64,7 +63,6 @@ const DailyStreakPage = () => {
                         const offset = curveOffsets[idx % curveOffsets.length];
                         const dateObj = new Date(day.date);
                         const weekday = daysShort[dateObj.getDay()];
-                        // Check if this day is today (in ICT)
                         const today = new Date();
                         const todayICT = new Date(today.getTime() + 7 * 60 * 60 * 1000);
                         todayICT.setUTCHours(0, 0, 0, 0);
@@ -101,7 +99,7 @@ const DailyStreakPage = () => {
             </div>
 
             {/* Right-side Card for Today's Session Types */}
-            <div className="w-[320px] ml-8 mt-2">
+            <div className="absolute left-1/2 top-1/2 -translate-y-1/2 ml-[340px] w-[320px]">
                 <div className="bg-white rounded-xl shadow p-5 border flex flex-col gap-3">
                     <div className="font-semibold text-gray-700 text-lg mb-2">Today's Activity</div>
                     <div className="flex flex-col gap-3">

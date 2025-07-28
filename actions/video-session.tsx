@@ -69,7 +69,7 @@ export const isVideoSessionActive = async (
   const formattedTopic = topic.toUpperCase().replace(/\s+/g, "");
 
 
-  const userSession = await db.video_session.findFirst({
+  const userSession = await db.video_session.findMany({
     where: {
       OR: [
         { userId1: userId },
@@ -79,7 +79,7 @@ export const isVideoSessionActive = async (
     },
   });
 
-  if (userSession) {
+  if (userSession.length >= 3) {
     return "already-in-session";
   }
 
@@ -120,10 +120,16 @@ export const isVideoSessionActive = async (
   return "unknown-error";
 };
 
-export const getAllVideoSessions = async () => {
-  return db.video_session.findMany();
-};
-
+export const getAllVideoSessions = async (userId: string) => {
+  return db.video_session.findMany({
+    where: {
+      AND: [
+        { userId1: { not: userId } },
+        { userId2: { not: userId } },
+      ],
+    },
+  });
+}
 export const getUserVideoSession = async (userId: string) => {
   return db.video_session.findFirst({
     where: {
@@ -301,7 +307,7 @@ export const getPendingSessionByTopic = async (
 ) => {
   const formattedTopic = topic.toUpperCase().replace(/\s+/g, "");
   // Check if user is already in an active session
-  const userSession = await db.video_session.findFirst({
+  const userSession = await db.video_session.findMany({
     where: {
       OR: [
         { userId1: userId },
@@ -310,7 +316,7 @@ export const getPendingSessionByTopic = async (
       status: "ACTIVE"
     },
   });
-  if (userSession) {
+  if (userSession.length >= 3) {
     return { status: "already-in-session" };
   }
 
@@ -369,6 +375,80 @@ export const joinSessionWithStartAt = async (
       startedAt: startedAt,
     },
   });
+};
+
+export const configpendingSession = async (
+  userId: string,) => {
+  const session = await db.video_session.findFirst({
+    where: {
+      OR: [
+        { userId1: userId },
+        { userId2: userId }
+      ],
+      status: "PENDING",
+    },
+    select: { id: true, topic: true },
+  });
+  return session ? { id: session.id, topic: session.topic } : null;
+}
+
+export const cancelPendingSessionById = async (sessionId: string) => {
+  return db.video_session.update({
+    where: { id: sessionId },
+    data: { status: "CANCELLED" }
+  });
+};
+
+export const checkSessionTimeOverlap = async (
+  userId: string,
+  priorities: string[]
+): Promise<string[]> => {
+  const userSessions = await db.video_session.findMany({
+    where: {
+      OR: [
+        { userId1: userId },
+        { userId2: userId }
+      ],
+      status: "ACTIVE"
+    },
+    select: { startedAt: true }
+  });
+  console.log("User sessions:", userSessions);
+  if (!userSessions || userSessions.length === 0) return [];
+
+  const thirtyMin = 30 * 60 * 1000;
+  const overlappedPriorities: string[] = [];
+
+  const parseRange = (range: string): [Date, Date] => {
+    // Split only on the dash between the two date-times
+    const [startStr, endStr] = range.split(/-(?=\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
+    const startDate = new Date(startStr);
+    const endDate = new Date(endStr);
+    // Add 7 hours (in ms)
+    startDate.setHours(startDate.getHours() + 7);
+    endDate.setHours(endDate.getHours() + 7);
+    return [startDate, endDate];
+  };
+
+  priorities.forEach((priority, idx) => {
+    const [priorityStart] = parseRange(priority);
+    // Check against all active sessions
+    console.log("Checking priority:", priority, "against user sessions");
+    console.log("Priority start time:", priorityStart);
+    const isOverlapped = userSessions.some(
+      s =>
+        s.startedAt &&
+        priorityStart.getTime() >= new Date(s.startedAt).getTime() - thirtyMin &&
+        priorityStart.getTime() <= new Date(s.startedAt).getTime() + thirtyMin
+    );
+    if (isOverlapped) {
+      if (idx === 0) overlappedPriorities.push("First Priority Time");
+      if (idx === 1) overlappedPriorities.push("Second Priority Time");
+      if (idx === 2) overlappedPriorities.push("Third Priority Time");
+    }
+  });
+  console.log("Overlapped priorities:", overlappedPriorities);
+  return overlappedPriorities;
 };
 
 
