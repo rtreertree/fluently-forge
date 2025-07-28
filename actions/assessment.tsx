@@ -1,6 +1,8 @@
 "use server";
 import * as sdk from "microsoft-cognitiveservices-speech-sdk";
 import * as fs from "fs";
+import { AssessedUtterance } from "@/lib/iassessment";
+import { db } from "@/lib/db";
 
 export interface PronunciationAssessmentWord {
     Word: string;
@@ -93,4 +95,24 @@ export async function assessPronunciation(script: string, audioBuffer?: Buffer):
     });
 
     return masterWordList;
+}
+
+export async function getAssessmentFromDB(sessinID: string) {
+    const resp = await db.sessions.findFirst({
+        where: {
+            id: sessinID
+        },
+        select: {
+            assessedDetail: true,
+        }
+    });
+
+    if (!resp || !resp.assessedDetail) {
+        throw new Error("No assessment data found for the given session ID.");
+    }
+
+    const data: AssessedUtterance[] = JSON.parse(resp.assessedDetail);
+
+    console.log("Assessment Data from DB:", data[0]);
+    return data;
 }
