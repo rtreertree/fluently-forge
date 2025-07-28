@@ -376,6 +376,29 @@ export const joinSessionWithStartAt = async (
     },
   });
 };
+
+export const configpendingSession = async (
+  userId: string,) => {
+  const session = await db.video_session.findFirst({
+    where: {
+      OR: [
+        { userId1: userId },
+        { userId2: userId }
+      ],
+      status: "PENDING",
+    },
+    select: { id: true, topic: true },
+  });
+  return session ? { id: session.id, topic: session.topic } : null;
+}
+
+export const cancelPendingSessionById = async (sessionId: string) => {
+  return db.video_session.update({
+    where: { id: sessionId },
+    data: { status: "CANCELLED" }
+  });
+};
+
 export const checkSessionTimeOverlap = async (
   userId: string,
   priorities: string[]
