@@ -30,36 +30,36 @@ export const cancelOldPendingSessions = async () => {
   await Promise.all(updatePromises);
 }
 
-export const cancelExceedingAppointmentSession = async () => {
-  const sessions = await db.video_session.findMany({
-    where: {
-      status: "ACTIVE",
-    },
-    select: { id: true, startedAt: true },
-  });
-  const now = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);
-  const thirtyMinutesMs = 30 * 60 * 1000;
-  const expiredSessions = sessions.filter(s => {
-    if (!s.startedAt) return false;
-    return (now.getTime() - new Date(s.startedAt).getTime()) >= thirtyMinutesMs;
-  });
-  console.log(now);
-  console.log("All active sessions:", sessions);
-  console.log("Expired sessions exceeding 30 minutes:", expiredSessions.length);
-  if (expiredSessions.length === 0) return 0;
-  const updatePromises = expiredSessions.map(s =>
-    db.video_session.update({
-      where: { id: s.id },
-      data: { status: "CANCELLED" },
-    })
-  );
-  await Promise.all(updatePromises);
+// export const cancelExceedingAppointmentSession = async () => {
+//   const sessions = await db.video_session.findMany({
+//     where: {
+//       status: "ACTIVE",
+//     },
+//     select: { id: true, startedAt: true },
+//   });
+//   const now = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);
+//   const thirtyMinutesMs = 30 * 60 * 1000;
+//   const expiredSessions = sessions.filter(s => {
+//     if (!s.startedAt) return false;
+//     return (now.getTime() - new Date(s.startedAt).getTime()) >= thirtyMinutesMs;
+//   });
+//   console.log(now);
+//   console.log("All active sessions:", sessions);
+//   console.log("Expired sessions exceeding 30 minutes:", expiredSessions.length);
+//   if (expiredSessions.length === 0) return 0;
+//   const updatePromises = expiredSessions.map(s =>
+//     db.video_session.update({
+//       where: { id: s.id },
+//       data: { status: "CANCELLED" },
+//     })
+//   );
+//   await Promise.all(updatePromises);
 
-  sessions.forEach(s => {
-    if (!s.startedAt) return;
-    const diff = now.getTime() - new Date(s.startedAt).getTime();
-  });
-}
+//   sessions.forEach(s => {
+//     if (!s.startedAt) return;
+//     const diff = now.getTime() - new Date(s.startedAt).getTime();
+//   });
+// }
 
 export const isVideoSessionActive = async (
   userId: string,
