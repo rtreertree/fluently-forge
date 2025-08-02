@@ -25,6 +25,7 @@ type VideoRoomProps = {
 };
 
 export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLocalTracks }, ref) => {
+  console.log("VideoRoom mounted");
   const [users, setUsers] = useState<User[]>([]);
   const [CHANNEL, setCHANNEL] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -127,13 +128,13 @@ export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLoc
           return prev.map((u) =>
             u.uid === user.uid
               ? {
-                  ...u,
-                  videoTrack:
-                    mediaType === "video" ? user.videoTrack : u.videoTrack,
-                  audioTrack:
-                    mediaType === "audio" ? user.audioTrack : u.audioTrack,
-                }
-                : u
+                ...u,
+                videoTrack:
+                  mediaType === "video" ? user.videoTrack : u.videoTrack,
+                audioTrack:
+                  mediaType === "audio" ? user.audioTrack : u.audioTrack,
+              }
+              : u
           );
         }
         return [
@@ -213,17 +214,32 @@ export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLoc
         if (hasJoinedRef.current) {
           // Only unpublish if tracks are published
           if (tracks[0] || tracks[1]) {
-            clientRef.current.unpublish(tracks).catch(() => {});
+            clientRef.current.unpublish(tracks).catch(() => { });
           }
-          clientRef.current.leave().catch(() => {});
+          clientRef.current.leave().catch(() => { });
           hasJoinedRef.current = false;
         }
       }
     };
   };
 
+  // Log sessionId and userId outside effects
+  console.log("sessionId at mount:", sessionId);
+  console.log("userId at mount:", userId);
+  console.log("useEffect [sessionId] triggered");
+  console.log("Fetching session user names for sessionId:", sessionId);
+  console.log("Current sessionUserNames:", sessionUserNames);
+  console.log("agoraUid:", agoraUid);
+  console.log("uidNameMap:", uidNameMap);
+  console.log("userId:", userId);
+  console.log("sessionId:", sessionId);
+  console.log("CHANNEL:", CHANNEL);
+  console.log("token:", token);
+  console.log("APP_ID:", APP_ID);
+
   // Fetch session user names when sessionId changes
   useEffect(() => {
+    console.log("useEffect [sessionId] triggered");
     console.log("Fetching session user names for sessionId:", sessionId);
     console.log("Current sessionUserNames:", sessionUserNames);
     console.log("agoraUid:", agoraUid);
@@ -239,12 +255,20 @@ export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLoc
 
   // Fetch channel and token when userId changes
   useEffect(() => {
+    console.log("useEffect [userId] triggered");
     fetchChannelAndToken();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   // Setup Agora when all required values are ready
   useEffect(() => {
+    console.log("useEffect [Agora dependencies] triggered", {
+      CHANNEL,
+      token,
+      sessionUserNames,
+      agoraUid,
+      APP_ID,
+    });
     setupAgora();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
