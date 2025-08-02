@@ -220,22 +220,29 @@ export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLoc
     };
   };
 
-  // Single useEffect to call all setup functions
+  // Fetch session user names when sessionId changes
   useEffect(() => {
     fetchNames();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
+
+  // Fetch channel and token when userId changes
+  useEffect(() => {
     fetchChannelAndToken();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  // Setup Agora when all required values are ready
+  useEffect(() => {
     setupAgora();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    sessionId,
-    userId,
     CHANNEL,
     token,
     sessionUserNames,
-    setLocalTracks,
     agoraUid,
-    uidNameMap,
     APP_ID,
+    setLocalTracks,
   ]);
 
   const getNameForUid = (uid: number | string) => {
