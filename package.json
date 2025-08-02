@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prisma": "prisma generate | prisma db push"
+    "prisma": "prisma generate | prisma db push",
+    "docker": ""
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.8.0",

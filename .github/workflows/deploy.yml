@@ -6,24 +6,6 @@ on:
       - main
 
 jobs:
-  upload-compose:
-    name: Upload compose.yaml to VPS
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Upload compose.yaml
-        uses: appleboy/scp-action@v0.1.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "compose.yaml"
-          target: "/root/projects/composefiles/"
-
-
   build-and-deploy:
     name: Build and Deploy Docker Image
     runs-on: ubuntu-latest
@@ -40,18 +22,3 @@ jobs:
 
       - name: Push to Docker Hub
         run: docker push ${{ secrets.DOCKER_USERNAME }}/fluently-forge:latest
-
-      - name: SSH to VPS and Deploy
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /root/projects/fluently-forge || exit 1
-            git pull origin main
-            
-            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-            docker compose -f compose.yaml down
-            docker pull ${{ secrets.DOCKER_USERNAME }}/fluently-forge:latest
-            docker compose -f compose.yaml up -d
