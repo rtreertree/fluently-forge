@@ -224,6 +224,15 @@ export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLoc
 
   // Fetch session user names when sessionId changes
   useEffect(() => {
+    console.log("Fetching session user names for sessionId:", sessionId);
+    console.log("Current sessionUserNames:", sessionUserNames);
+    console.log("agoraUid:", agoraUid);
+    console.log("uidNameMap:", uidNameMap);
+    console.log("userId:", userId);
+    console.log("sessionId:", sessionId);
+    console.log("CHANNEL:", CHANNEL);
+    console.log("token:", token);
+    console.log("APP_ID:", APP_ID);
     fetchNames();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
