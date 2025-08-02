@@ -30,36 +30,36 @@ export const cancelOldPendingSessions = async () => {
   await Promise.all(updatePromises);
 }
 
-// export const cancelExceedingAppointmentSession = async () => {
-//   const sessions = await db.video_session.findMany({
-//     where: {
-//       status: "ACTIVE",
-//     },
-//     select: { id: true, startedAt: true },
-//   });
-//   const now = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);
-//   const thirtyMinutesMs = 30 * 60 * 1000;
-//   const expiredSessions = sessions.filter(s => {
-//     if (!s.startedAt) return false;
-//     return (now.getTime() - new Date(s.startedAt).getTime()) >= thirtyMinutesMs;
-//   });
-//   console.log(now);
-//   console.log("All active sessions:", sessions);
-//   console.log("Expired sessions exceeding 30 minutes:", expiredSessions.length);
-//   if (expiredSessions.length === 0) return 0;
-//   const updatePromises = expiredSessions.map(s =>
-//     db.video_session.update({
-//       where: { id: s.id },
-//       data: { status: "CANCELLED" },
-//     })
-//   );
-//   await Promise.all(updatePromises);
+export const cancelExceedingAppointmentSession = async () => {
+  const sessions = await db.video_session.findMany({
+    where: {
+      status: "ACTIVE",
+    },
+    select: { id: true, startedAt: true },
+  });
+  const now = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);
+  const thirtyMinutesMs = 30 * 60 * 1000;
+  const expiredSessions = sessions.filter(s => {
+    if (!s.startedAt) return false;
+    return (now.getTime() - new Date(s.startedAt).getTime()) >= thirtyMinutesMs;
+  });
+  console.log(now);
+  console.log("All active sessions:", sessions);
+  console.log("Expired sessions exceeding 30 minutes:", expiredSessions.length);
+  if (expiredSessions.length === 0) return 0;
+  const updatePromises = expiredSessions.map(s =>
+    db.video_session.update({
+      where: { id: s.id },
+      data: { status: "CANCELLED" },
+    })
+  );
+  await Promise.all(updatePromises);
 
-//   sessions.forEach(s => {
-//     if (!s.startedAt) return;
-//     const diff = now.getTime() - new Date(s.startedAt).getTime();
-//   });
-// }
+  sessions.forEach(s => {
+    if (!s.startedAt) return;
+    const diff = now.getTime() - new Date(s.startedAt).getTime();
+  });
+}
 
 export const isVideoSessionActive = async (
   userId: string,
@@ -157,12 +157,17 @@ const APP_CERTIFICATE = process.env.NEXT_PUBLIC_AGORA_APP_CERTIFICATE!;
 
 
 const generateAgoraUid = (userId: string): number => {
+  if (!userId) {
+    return Math.floor(Math.random() * 90000) + 10000;
+  }
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
     hash = (hash << 5) - hash + userId.charCodeAt(i);
     hash |= 0; // Convert to 32-bit integer
   }
-  return Math.abs(hash) % 4294967295 || 1;
+  // Ensure UID is positive and not 0 or 1 or 2
+  const uid = Math.abs(hash) % 4294967295;
+  return uid > 2 ? uid : uid + 3;
 };
 
 
@@ -366,13 +371,16 @@ export const joinSessionWithStartAt = async (
   userId: string,
   startedAt: Date,
 ) => {
+  // Add 7 hours to startedAt before saving
+  const startedAtWithOffset = new Date(startedAt);
+  startedAtWithOffset.setHours(startedAtWithOffset.getHours() + 7);
 
   return db.video_session.update({
     where: { id: sessionId },
     data: {
       userId2: userId,
       status: "ACTIVE",
-      startedAt: startedAt,
+      startedAt: startedAtWithOffset,
     },
   });
 };
