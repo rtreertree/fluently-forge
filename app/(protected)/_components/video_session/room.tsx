@@ -165,6 +165,8 @@ export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLoc
           agoraUid,
         });
         hasJoinedRef.current = false;
+        alert("Missing required Agora parameters. Please reload the page.");
+        setUploadStatus("error");
         return;
       }
       const uid = await client.join(APP_ID, CHANNEL, token, agoraUid);

@@ -57,45 +57,54 @@ const DailyStreakPage = () => {
                 </div>
 
                 {/* Weekly Progress Circles */}
-                <div className="flex flex-col items-center gap-2 mt-4">
-                    {weekProgress.map((day, idx) => {
-                        const curveOffsets = [-40, 18, -28, 32, -16, 24, -12];
-                        const offset = curveOffsets[idx % curveOffsets.length];
-                        const dateObj = new Date(day.date);
-                        const weekday = daysShort[dateObj.getDay()];
-                        const today = new Date();
-                        const todayICT = new Date(today.getTime() + 7 * 60 * 60 * 1000);
-                        todayICT.setUTCHours(0, 0, 0, 0);
-                        const isToday =
-                            dateObj.toISOString().slice(0, 10) === todayICT.toISOString().slice(0, 10);
-                        return (
-                            <div
-                                key={day.date}
-                                className="flex flex-col items-center"
-                                style={{ transform: `translateX(${offset}px)` }}
-                            >
-                                <div
-                                    className={`w-16 h-16 flex items-center justify-center rounded-full text-2xl shadow transition-all ${
-                                        day.active
-                                            ? "bg-green-500 text-white"
-                                            : "bg-gray-200 text-gray-400"
-                                    }`}
-                                >
-                                    <Star size={30} className="inline-block" />
-                                </div>
-                                <span className="mt-2 text-base font-medium text-gray-600 flex items-center gap-1">
-                                    {weekday}
-                                    {day.active && isToday && (
-                                        <span className="text-s text-orange-500 font-semibold ml-1">
-                                            {dateObj.getDate().toString().padStart(2, "0")}/
-                                            {(dateObj.getMonth() + 1).toString().padStart(2, "0")}
-                                        </span>
-                                    )}
-                                </span>
-                            </div>
-                        );
-                    })}
-                </div>
+                <div
+  className="
+    flex
+    flex-row
+    md:flex-col
+    items-center
+    gap-4
+    mt-4
+    w-full
+    md:w-auto
+    justify-center
+  "
+>
+  {weekProgress.map((day, idx) => {
+    const dateObj = new Date(day.date);
+    const weekday = daysShort[dateObj.getDay()];
+    const today = new Date();
+    const todayICT = new Date(today.getTime() + 7 * 60 * 60 * 1000);
+    todayICT.setUTCHours(0, 0, 0, 0);
+    const isToday =
+      dateObj.toISOString().slice(0, 10) === todayICT.toISOString().slice(0, 10);
+    return (
+      <div
+        key={day.date}
+        className="flex flex-col items-center"
+      >
+        <div
+          className={`w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-full text-2xl shadow transition-all ${
+            day.active
+              ? "bg-green-500 text-white"
+              : "bg-gray-200 text-gray-400"
+          }`}
+        >
+          <Star size={24} className="inline-block md:size-30" />
+        </div>
+        <span className="mt-2 text-base font-medium text-gray-600 flex items-center gap-1">
+          {weekday}
+          {day.active && isToday && (
+            <span className="text-s text-orange-500 font-semibold ml-1">
+              {dateObj.getDate().toString().padStart(2, "0")}/
+              {(dateObj.getMonth() + 1).toString().padStart(2, "0")}
+            </span>
+          )}
+        </span>
+      </div>
+    );
+  })}
+</div>
             </div>
 
             {/* Right-side Card for Today's Session Types */}
