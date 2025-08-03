@@ -172,8 +172,10 @@ export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLoc
       }
       const uid = await client.join(APP_ID, CHANNEL, token, agoraUid);
       const AgoraRTC = (await import("agora-rtc-sdk-ng")).default;
-      const tracksArr = await AgoraRTC.createMicrophoneAndCameraTracks();
-      const [microphoneTrack, cameraTrack] = tracksArr;
+      // const tracksArr = await AgoraRTC.createMicrophoneAndCameraTracks();
+      // const [microphoneTrack, cameraTrack] = tracksArr;
+      const microphoneTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      const cameraTrack = await AgoraRTC.createCameraVideoTrack();
       setLocalAgoraUid(uid);
       setLocalTracks([microphoneTrack, cameraTrack]);
       const myName =
