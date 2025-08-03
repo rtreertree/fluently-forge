@@ -11,6 +11,9 @@ RUN npm ci
 # Copy source files
 COPY . .
 
+# Add this line to copy your env file
+COPY .env.production .env.production
+
 RUN npx prisma generate
 
 # Build the Next.js app
