@@ -118,7 +118,7 @@ const CreateSessionForm = ({
           form.reset();
         }}
       >
-        Change Topic/Back
+        Change Topic// Back
       </Button>
       <Button
         type="button"
