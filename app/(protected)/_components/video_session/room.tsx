@@ -270,17 +270,36 @@ export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLoc
       setUploadStatus("error");
       return;
     }
+
     setUploadStatus("uploading");
     try {
-      const { blob: userBlob } = await recorderRef.current.stop();
+      const mr = recorderRef.current.mediaRecorder as MediaRecorder | null;
+      const chunks = recorderRef.current.chunks as BlobPart[] | null;
 
+      if (mr && mr.state === "recording") {
+        // stop and wait for dataavailable/onstop
+        await new Promise<void>((resolve) => {
+          mr.onstop = () => resolve();
+          mr.stop();
+        });
+      }
 
+      // build compressed blob
+      const blob = chunks && chunks.length
+        ? new Blob(chunks, { type: recorderRef.current.mimeType || "audio/webm" })
+        : null;
+
+      if (!blob) {
+        throw new Error("No recording data available");
+      }
+
+      // stop tracks
       if (recorderRef.current.stream) {
-        recorderRef.current.stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+        recorderRef.current.stream.getTracks().forEach((t: MediaStreamTrack) => t.stop());
       }
 
       const formData = new FormData();
-      formData.append("user-audio", userBlob, `${sessionId}/${userId}.wav`);
+      formData.append("user-audio", blob, `${sessionId}/${userId}.${blob.type.includes("ogg") ? "ogg" : "webm"}`);
       formData.append("user-id", userId);
       formData.append("session-id", sessionId);
 
@@ -305,6 +324,12 @@ export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLoc
     } catch (err) {
       setUploadStatus("error");
       console.error("Upload failed:", err);
+    } finally {
+      if (recorderRef.current) {
+        recorderRef.current.chunks = null;
+        recorderRef.current.mediaRecorder = null;
+        recorderRef.current.stream = null;
+      }
     }
   };
 
@@ -313,11 +338,37 @@ export const VideoRoom = forwardRef<any, VideoRoomProps>(({ micOn, camOn, setLoc
     setUploadStatus("idle");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      recorderRef.current = new Recorder(audioContextRef.current);
-      await recorderRef.current.init(stream);
+      recorderRef.current = recorderRef.current || {};
       recorderRef.current.stream = stream;
-      await recorderRef.current.start();
+
+      let mimeType = "";
+      if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+        mimeType = "audio/webm;codecs=opus";
+      } else if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")) {
+        mimeType = "audio/ogg;codecs=opus";
+      } else {
+        mimeType = "audio/webm";
+      }
+
+      const options: MediaRecorderOptions = {
+        mimeType,
+        audioBitsPerSecond: 64000,
+      };
+
+      const mediaRecorder = new MediaRecorder(stream, options);
+      const chunks: BlobPart[] = [];
+      mediaRecorder.ondataavailable = (e: BlobEvent) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
+      mediaRecorder.onerror = (ev) => {
+        console.error("MediaRecorder error", ev);
+      };
+      mediaRecorder.start();
+      recorderRef.current.mediaRecorder = mediaRecorder;
+      recorderRef.current.chunks = chunks;
+      recorderRef.current.mimeType = mimeType;
+
+      console.log("MediaRecorder started with mime:", mimeType);
     } catch (err) {
       console.error("Recording error:", err);
       setUploadStatus("error");
