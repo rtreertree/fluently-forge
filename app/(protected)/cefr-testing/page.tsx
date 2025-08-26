@@ -205,7 +205,7 @@ export default function CerfTestingPage() {
     setCurrent(0);
 
     startTransition(() => {
-      saveCefrResult(userId,predicted);
+      saveCefrResult(userId, predicted);
     });
   };
 

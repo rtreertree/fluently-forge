@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-getDailyStreak,
-getWeeklyProgress,
-getTodaySessionTypeCounts
+    getDailyStreak,
+    getWeeklyProgress,
+    getTodaySessionTypeCounts,
 } from "@/actions/steak";
-import { Flame ,Star} from "lucide-react";
+import { Flame, Star } from "lucide-react";
 import { useSession } from "next-auth/react";
 import CerfBox from "../_components/cefr_lvl/cerf-box";
 import Loader from "@/components/suspend/loading";
@@ -68,7 +68,8 @@ const DailyStreakPage = () => {
                         const todayICT = new Date(today.getTime() + 7 * 60 * 60 * 1000);
                         todayICT.setUTCHours(0, 0, 0, 0);
                         const isToday =
-                            dateObj.toISOString().slice(0, 10) === todayICT.toISOString().slice(0, 10);
+                            dateObj.toISOString().slice(0, 10) ===
+                            todayICT.toISOString().slice(0, 10);
                         return (
                             <div
                                 key={day.date}
@@ -76,11 +77,10 @@ const DailyStreakPage = () => {
                                 style={{ transform: `translateX(${offset}px)` }}
                             >
                                 <div
-                                    className={`w-16 h-16 flex items-center justify-center rounded-full text-2xl shadow transition-all ${
-                                        day.active
+                                    className={`w-16 h-16 flex items-center justify-center rounded-full text-2xl shadow transition-all ${day.active
                                             ? "bg-green-500 text-white"
                                             : "bg-gray-200 text-gray-400"
-                                    }`}
+                                        }`}
                                 >
                                     <Star size={30} className="inline-block" />
                                 </div>
@@ -102,7 +102,9 @@ const DailyStreakPage = () => {
             {/* Right-side Card for Today's Session Types */}
             <div className="absolute left-1/2 top-1/2 -translate-y-1/2 ml-[340px] w-[320px]">
                 <div className="bg-white rounded-xl shadow p-5 border flex flex-col gap-3">
-                    <div className="font-semibold text-gray-700 text-lg mb-2">Today's Activity</div>
+                    <div className="font-semibold text-gray-700 text-lg mb-2">
+                        Today's Activity
+                    </div>
                     <div className="flex flex-col gap-3">
                         {SESSION_TYPES.map((type) => (
                             <div key={type.key} className="flex items-center justify-between">
@@ -116,8 +118,8 @@ const DailyStreakPage = () => {
                 </div>
             </div>
             {/* left side — moved further left to avoid overlap */}
-            <div className="absolute left-1/2 top-1/2 -translate-y-1/2 -ml-[600px   ] w-[320px]">
-              <CerfBox />
+            <div className="absolute left-1/2 top-1/2 -translate-y-1/2 -ml-[600px] w-[320px]">
+                <CerfBox />
             </div>
         </div>
     ) : (
