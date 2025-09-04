@@ -1,0 +1,37 @@
+[
+  { "id": "A1-q1", "text": "Choose the correct past tense of 'go'.", "choices": ["goed", "went", "gone", "goes"], "answer": "went", "level": "A1" },
+  { "id": "A1-q2", "text": "I ___ a student.", "choices": ["am", "is", "are", "be"], "answer": "am", "level": "A1" },
+  { "id": "A1-q3", "text": "She ___ in a small house.", "choices": ["live", "lives", "living", "lived"], "answer": "lives", "level": "A1" },
+  { "id": "A1-q4", "text": "We have ___ apple and two bananas.", "choices": ["a", "an", "the", "—"], "answer": "an", "level": "A1" },
+  { "id": "A1-q5", "text": "They can ___ English.", "choices": ["speaks", "speaking", "speak", "to speak"], "answer": "speak", "level": "A1" },
+
+  { "id": "A2-q1", "text": "I’m ___ to meet my friends at 6 p.m.", "choices": ["go", "going", "going to", "gone to"], "answer": "going to", "level": "A2" },
+  { "id": "A2-q2", "text": "He ___ the bus because it was raining.", "choices": ["take", "took", "taken", "takes"], "answer": "took", "level": "A2" },
+  { "id": "A2-q3", "text": "This box is ___ than that one.", "choices": ["heavy", "heavier", "the most heavy", "more heaviest"], "answer": "heavier", "level": "A2" },
+  { "id": "A2-q4", "text": "There aren’t ___ chairs for everyone.", "choices": ["much", "many", "few", "a"], "answer": "many", "level": "A2" },
+  { "id": "A2-q5", "text": "We were ___ TV when the lights went out.", "choices": ["watch", "watching", "watched", "to watch"], "answer": "watching", "level": "A2" },
+
+  { "id": "B1-q1", "text": "We ___ to live by the sea, but we moved last year.", "choices": ["use", "used", "used to", "are used"], "answer": "used to", "level": "B1" },
+  { "id": "B1-q2", "text": "If it ___ tomorrow, we’ll stay at home.", "choices": ["rains", "rain", "will rain", "rained"], "answer": "rains", "level": "B1" },
+  { "id": "B1-q3", "text": "I’ve ___ my keys. Have you seen them?", "choices": ["lose", "losing", "lost", "been lost"], "answer": "lost", "level": "B1" },
+  { "id": "B1-q4", "text": "That’s the woman ___ car was stolen.", "choices": ["which", "who", "whose", "whom"], "answer": "whose", "level": "B1" },
+  { "id": "B1-q5", "text": "He asked me where I ___ the day before.", "choices": ["go", "went", "had gone", "have gone"], "answer": "had gone", "level": "B1" },
+
+  { "id": "B2-q1", "text": "I’d rather ___ at home tonight.", "choices": ["stay", "to stay", "stayed", "staying"], "answer": "stay", "level": "B2" },
+  { "id": "B2-q2", "text": "Despite ___ tired, she finished the report.", "choices": ["be", "to be", "being", "been"], "answer": "being", "level": "B2" },
+  { "id": "B2-q3", "text": "The proposal ___ by the committee yesterday.", "choices": ["approves", "was approved", "has approved", "was approving"], "answer": "was approved", "level": "B2" },
+  { "id": "B2-q4", "text": "They had the roof ___ last month.", "choices": ["to repair", "repair", "repaired", "repairing"], "answer": "repaired", "level": "B2" },
+  { "id": "B2-q5", "text": "Hardly ___ the meeting start when the fire alarm rang.", "choices": ["had", "has", "did", "was"], "answer": "had", "level": "B2" },
+
+  { "id": "C1-q1", "text": "Not until the end ___ how serious the problem was.", "choices": ["we realized", "did we realize", "we had realized", "realized we"], "answer": "did we realize", "level": "C1" },
+  { "id": "C1-q2", "text": "The manager insisted that the report ___ by Friday.", "choices": ["is submitted", "be submitted", "was submitted", "to be submitted"], "answer": "be submitted", "level": "C1" },
+  { "id": "C1-q3", "text": "She ___ left earlier; the roads were already closed.", "choices": ["should have", "must have", "could have", "would have"], "answer": "should have", "level": "C1" },
+  { "id": "C1-q4", "text": "Their plan is economically ___ but politically risky.", "choices": ["feasible", "feasibility", "feasibly", "feasing"], "answer": "feasible", "level": "C1" },
+  { "id": "C1-q5", "text": "Rarely ___ such a convincing argument.", "choices": ["I hear", "do I hear", "I have heard", "I am hearing"], "answer": "do I hear", "level": "C1" },
+
+  { "id": "C2-q1", "text": "No sooner ___ the announcement than the market reacted.", "choices": ["they had made", "had they made", "they made", "have they made"], "answer": "had they made", "level": "C2" },
+  { "id": "C2-q2", "text": "Were it not for her tenacity, the project ___ abandoned.", "choices": ["will be", "would have been", "was being", "has been"], "answer": "would have been", "level": "C2" },
+  { "id": "C2-q3", "text": "The committee’s decision was as much pragmatic as it was ___ .", "choices": ["symbolic", "symbol", "symbolism", "symbolically"], "answer": "symbolic", "level": "C2" },
+  { "id": "C2-q4", "text": "He spoke in such a way as to ___ any suggestion of bias.", "choices": ["repudiate", "repute", "repute of", "reputation"], "answer": "repudiate", "level": "C2" },
+  { "id": "C2-q5", "text": "Little ___ about the implications at the time.", "choices": ["they thought", "did they think", "they have thought", "were they think"], "answer": "did they think", "level": "C2" }
+]
