@@ -14,7 +14,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 
 const mockData = Array.from({ length: 100 }).map((_, i) => ({
 	date: "20/9/2016",
-	status: i % 2 === 0 ? "processingsdfsfsdfsd" : "completed",
+	status: i % 2 === 0 ? "processing" : "completed",
 	type: "Small talk",
 	title: `IELTS Topic ${i + 1}`,
 }))
@@ -90,11 +90,9 @@ export function ListBox({ data }: ListBoxProps) {
 										<Button
 											variant="outline"
 											size="sm"
-											disabled={item.assess !== "ASSESSED"}
+											// disabled={item.assess !== "ASSESSED"}
 											onClick={() => {
-												if (item.assess === "ASSESSED") {
-													console.log("SSID:", item.ssid)
-												}
+												window.location.href = `/session/details?id=${item.ssid}`;
 											}}
 										>
 											view

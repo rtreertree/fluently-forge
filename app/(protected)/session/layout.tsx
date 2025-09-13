@@ -40,9 +40,9 @@ export default function RootLayout({
 		checkSession();
 	}, [session, status, pathname, router]);
 
-	if (isLoading || status === "loading") {
-		return <Loader text="Loading..." />;
-	}
+	// if (isLoading || status === "loading") {
+	// 	return <Loader text="Loading..." />;
+	// }
 
 	return <div>{children}</div>;
 }

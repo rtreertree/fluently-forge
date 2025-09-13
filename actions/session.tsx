@@ -65,6 +65,8 @@ export const createSession = async (sessionSettings: createSessionInterface): Pr
         const apikey = process.env.OPENAI_API_KEY;
         const model = process.env.OPENAI_MODEL || "gpt-4o-mini-realtime-preview";      
 
+        console.log("Using OpenAI model:", model);
+
         try {
             const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
                 method: "POST",
