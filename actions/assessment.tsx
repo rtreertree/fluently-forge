@@ -3,6 +3,7 @@ import * as sdk from "microsoft-cognitiveservices-speech-sdk";
 import * as fs from "fs";
 import { AssessedUtterance } from "@/lib/iassessment";
 import { db } from "@/lib/db";
+import { MergedTranscription } from "./azureHandler";
 
 export interface PronunciationAssessmentWord {
     Word: string;
@@ -29,7 +30,7 @@ export interface PronunciationAssessmentDetailResult {
     Words: PronunciationAssessmentWord[];
 }
 
-export async function assessPronunciation(script: string, audioBuffer?: Buffer): Promise<PronunciationAssessmentWord[]> {
+export async function assessPronunciation(script: string, audioBuffer?: Buffer): Promise<PronunciationAssessmentDetailResult[]> {
     // Set up SDK configuration from environment
     const subscriptionKey = process.env.AZURE_SUBSCRIPTION_KEY || "";
     const serviceRegion = process.env.AZURE_REGION || "eastasia";
@@ -54,21 +55,21 @@ export async function assessPronunciation(script: string, audioBuffer?: Buffer):
     const reco = new sdk.SpeechRecognizer(speechConfig, audioConfig);
     pronunciationAssessmentConfig.applyTo(reco);
 
-    let masterWordList: PronunciationAssessmentWord[] = [];
+    let masterWordList: PronunciationAssessmentDetailResult[] = [];
 
     await new Promise<void>((resolve, reject) => {
         reco.recognized = (_s, event) => {
             const result = event.result;
             if (result.reason === sdk.ResultReason.RecognizedSpeech) {
                 const pronunciation_result = sdk.PronunciationAssessmentResult.fromResult(result);
-                console.log("Recognized:", pronunciation_result);
                 let detailResult: PronunciationAssessmentDetailResult | undefined;
                 try {
                     detailResult = JSON.parse(JSON.stringify(pronunciation_result.detailResult));
+                    console.log("Parsed detailResult:", detailResult);
                 } catch (_err) { /* ignore parse error */ }
 
                 if (detailResult) {
-                    masterWordList.push(...detailResult.Words);
+                    masterWordList.push(detailResult);
                 }
             }
         };
@@ -111,8 +112,24 @@ export async function getAssessmentFromDB(sessinID: string) {
         throw new Error("No assessment data found for the given session ID.");
     }
 
-    const data: AssessedUtterance[] = JSON.parse(resp.assessedDetail);
+    const data: PronunciationAssessmentDetailResult[] = JSON.parse(resp.assessedDetail);
+    return data;
+}
 
-    console.log("Assessment Data from DB:", data[0]);
+export async function getTranscriptionFromDB(sessinID: string) {
+    const resp = await db.sessions.findFirst({
+        where: {
+            id: sessinID
+        },
+        select: {
+            transcript: true,
+        }
+    });
+
+    if (!resp || !resp.transcript) {
+        throw new Error("No transcription data found for the given session ID.");
+    }
+
+    const data: MergedTranscription[] = JSON.parse(resp.transcript);
     return data;
 }

@@ -1,18 +1,54 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useRef } from 'react'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { MergedTranscription } from '@/actions/azureHandler'
-import { ChatBubble } from './chat-bubble'
 
-interface ChatBoxProp {
+/* ---------- Types ---------- */
+interface ChatBoxProps {
     messages: MergedTranscription[]
 }
 
-export default function SupportChat({messages}: ChatBoxProp) {
+interface ChatWordProps {
+    word: string
+    underline?: boolean
+}
 
+interface ChatBubbleProps {
+    message: string
+    isUser: boolean
+}
+
+/* ---------- Components ---------- */
+const ChatWord = ({ word, underline = false }: ChatWordProps) => (
+    <span className={`inline-block px-[3px] ${underline ? 'underline' : ''}`}>
+        {word}
+    </span>
+)
+
+const ChatBubble = ({ message, isUser }: ChatBubbleProps) => {
+    if (!message.trim()) return null
+
+    const words = message.split(/\s+/)
+
+    return (
+        <div
+            className={`w-fit max-w-[80%] px-4 py-2 rounded-xl text-base ${isUser
+                    ? 'bg-neutral-800 text-white self-start'
+                    : 'bg-gray-100 text-black self-end ml-auto'
+                }`}
+        >
+            <div className="flex flex-wrap">
+                {words.map((word, idx) => (
+                    <ChatWord key={idx} word={word} />
+                ))}
+            </div>
+        </div>
+    )
+}
+
+/* ---------- Main ---------- */
+export default function TranscriptionChat({ messages }: ChatBoxProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null)
 
     return (
@@ -23,7 +59,6 @@ export default function SupportChat({messages}: ChatBoxProp) {
                         key={idx}
                         message={msg.text}
                         isUser={msg.speaker === 1}
-                        idx={idx}
                     />
                 ))}
                 <div ref={messagesEndRef} />

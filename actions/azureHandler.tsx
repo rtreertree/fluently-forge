@@ -135,15 +135,25 @@ export const transcribeAudio = async (audioBuffer: Buffer) => {
 
 export const transcribeAudioMerged = async (sessionId: string)=> {
     const readable = await getRecordings(sessionId, "user");
-
-    if (!readable) {
-        throw new Error("Failed to retrieve agent recording.");
-    }
-
-    console.log("Transcribing audio for session ID:", sessionId);
-    console.log("Agent recording retrieved successfully. now converting to buffer...");
+    if (!readable) throw new Error("Failed to retrieve user recording."); 
+    console.log("User recording retrieved successfully. now converting to buffer...");
     const audioBuffer = await readableToBuffer(readable);
+    readable.destroy();
+
+    const readableAgent = await getRecordings(sessionId, "agent");
+    if (!readableAgent) throw new Error("Failed to retrieve agent recording.");
+    console.log("Agent recording retrieved successfully. now converting to buffer...");
+    const audioBufferAgent = await readableToBuffer(readableAgent);
+    readableAgent.destroy();
+
+    console.log("Transcribing user audio...");
     const transcription = await transcribeAudio(audioBuffer);
+    const transcriptionAgent = await transcribeAudio(audioBufferAgent);
+
+    console.log("Merging transcriptions...");
+    const merged = await mergeTranscriptions(transcriptionAgent, transcription);
+
+    console.log(merged);
 
     console.log("Trimming audio buffer to remove silence...");
     const audioData = decodeWavToRawAudioBuffer(audioBuffer);
@@ -182,12 +192,13 @@ export const transcribeAudioMerged = async (sessionId: string)=> {
     const assessedPhrases = await Promise.all(assessmentPromises);
 
     // remove waveBuffer from assessedPhrase
-    const finalPhrases = assessedPhrases.map(({ wavBuffer, ...rest }) => rest);
-
+    const finalPhrases = assessedPhrases.map(({ wavBuffer, ...rest }) => rest);    
     db.sessions.update({
         where: { id: sessionId },
         data: {
-            assessedDetail: JSON.stringify(finalPhrases)
+            assessedDetail: JSON.stringify(finalPhrases),
+            transcript: JSON.stringify(merged),
+            assessmentStatus: "ASSESSED"
         }
     }).catch((err) => {
         console.error("Failed to update session with transcription:", err);

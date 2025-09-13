@@ -1,13 +1,11 @@
 "use server";
 
 import fetch from 'node-fetch';
-import { openaiClient } from '@/lib/openai';
-import { logDB } from "@/data/logs";
+
 import { LogType, SessionType } from "@prisma/client";
 import { db } from '@/lib/db';
 import { generateScenarioPrompt, getMonologueQuestion } from './openaiHandler';
 import { v4 as uuid } from 'uuid';
-import { SessionListItem } from '@/app/(protected)/_components/session/list/session-list';
 
 export interface createSessionInterface {
     userId: string;
@@ -63,7 +61,7 @@ export const createSession = async (sessionSettings: createSessionInterface): Pr
         }
 
         const apikey = process.env.OPENAI_API_KEY;
-        const model = process.env.OPENAI_MODEL || "gpt-4o-mini-realtime-preview";      
+        const model = process.env.OPENAI_MODEL;      
 
         console.log("Using OpenAI model:", model);
 

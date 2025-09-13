@@ -9,7 +9,7 @@ export const ChatWord = ({word, idx, underline}: ChatWordProps) => {
     return (
         <span
             key={idx}
-            className={`inline-block px-1 ${underline ? 'underline' : ''}`}
+            className={`inline-block px-[3px] ${underline ? 'underline' : ''}`}
         >
             {word}
         </span>

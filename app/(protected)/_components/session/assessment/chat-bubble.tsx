@@ -28,7 +28,7 @@ export const ChatBubble = ({ message, isUser, idx }: ChatBubbleProps) => {
         >
             <div className="flex flex-wrap">
                 {words.map((word, wordIdx) => (
-                    ChatWord({ word, idx: wordIdx, underline: !isUser })
+                    <ChatWord key={wordIdx} word={word} idx={wordIdx} underline={false} />
                 ))}
             </div>
         </div>

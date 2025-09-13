@@ -2,10 +2,11 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import ChatBoxComponent from "@/app/(protected)/_components/session/assessment/chatbox";
-import { agentPlaceholder, userPlaceholder } from "@/actions/placeholder";
+import TranscriptionChat from "@/app/(protected)/_components/session/assessment/chatbox";
+import CommentBox from "@/app/(protected)/_components/session/assessment/commmetbox";
 import { MergedTranscription, mergeTranscriptions, transcribeAudioMerged } from "@/actions/azureHandler";
-import { assessPronunciation } from "@/actions/assessment";
+import { getAssessmentFromDB, getTranscriptionFromDB } from "@/actions/assessment";
+import { set } from "lodash";
 
 export default function SessionDetails() {
     const searchParams = useSearchParams();
@@ -17,30 +18,34 @@ export default function SessionDetails() {
             window.location.href = "/session/create";
             return;
         }
-        console.log("Fetching session details for ID:", id);
 
-        mergeTranscriptions(agentPlaceholder, userPlaceholder).then((merged) => {
-            setTranscription(merged);
+        getTranscriptionFromDB(id).then((data) => {
+            console.log("Fetched transcription data:", data);
+            setTranscription(data);
         });
+
+        console.log("Fetching session details for ID:", id);
     }, [id]);
 
     console.log("Session ID:", id);
 
     const onTestAssessment = async () => {
-        const words = await transcribeAudioMerged("54b424ff-ac58-434d-96e5-5a3457ea03d2");
+        if (!id) return;
+        const words = await transcribeAudioMerged(id);
         console.log("Pronunciation Assessment Words:", words);
     }
 
     return (
-        <div className="flex flex-col items-center justify-center">
+        <div className="flex flex-row items-center justify-center gap-7 p-10">
             {
                 !transcription ? (
                     <div className="text-center text-gray-500">Loading session details...</div>
                 ) : (
-                    <ChatBoxComponent messages={transcription}/>
+                    <TranscriptionChat messages={transcription}/>
                 )
             }
-            <button onClick={onTestAssessment}>testAssessment</button>
+            <CommentBox/>
+            {/* <button onClick={onTestAssessment}>testAssessment</button> */}
         </div>
     );
 }

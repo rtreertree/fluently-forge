@@ -120,12 +120,11 @@ export function audioBufferToWavBlob(buffer: AudioBuffer): Blob {
 }
 
 export function readableToBuffer(readable: Readable): Promise<Buffer> {
-        return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         const chunks: Buffer[] = [];
-
         readable.on('data', (chunk) => {
             // Always convert to Buffer if needed
-            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));        
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
         });
 
         readable.on('end', () => {
