@@ -4,7 +4,6 @@ import { useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { MergedTranscription } from '@/actions/azureHandler'
 
-/* ---------- Types ---------- */
 interface ChatBoxProps {
     messages: MergedTranscription[]
 }
@@ -19,7 +18,6 @@ interface ChatBubbleProps {
     isUser: boolean
 }
 
-/* ---------- Components ---------- */
 const ChatWord = ({ word, underline = false }: ChatWordProps) => (
     <span className={`inline-block px-[3px] ${underline ? 'underline' : ''}`}>
         {word}
@@ -47,7 +45,6 @@ const ChatBubble = ({ message, isUser }: ChatBubbleProps) => {
     )
 }
 
-/* ---------- Main ---------- */
 export default function TranscriptionChat({ messages }: ChatBoxProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null)
 

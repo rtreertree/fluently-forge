@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadSession } from '@/actions/fileHandler';
 import { db } from '@/lib/db';
+import { startAssessmentPipeline } from '@/actions/assessment';
 
 
 
@@ -46,6 +47,10 @@ export async function POST(req: NextRequest) {
             userAudio: Buffer.from(await userAudio.arrayBuffer()),
             mergedAudio: Buffer.from(await mixedAudio.arrayBuffer()),
         })
+
+
+        // trigger transcription and assessment pipeline here (async)
+        startAssessmentPipeline(formData.get('session-id') as string);
 
         return NextResponse.json({ success: true }, { status: 200 });
     } catch (err) {

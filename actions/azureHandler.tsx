@@ -3,7 +3,7 @@
 import FormData, { Readable } from 'form-data';
 import { getRecordings } from './fileHandler';
 import { audioBufferToWavBlob, bufferToAudioBuffer, readableToBuffer, cutRawAudioBuffer, decodeWavToRawAudioBuffer, encodeRawAudioBufferToWav, RawAudioBuffer } from '@/lib/audio';
-import { assessPronunciation, PronunciationAssessmentWord } from './assessment';
+import { assessPronunciation, generateSuggestion, PronunciationAssessmenDB, PronunciationAssessmentWord } from './assessment';
 import { db } from '@/lib/db';
 
 import axios from 'axios';
@@ -23,7 +23,7 @@ export interface TranscriptionResponse {
 
 export interface MergedTranscription {
     text: string;
-    speaker: number; // 1 or 2
+    speaker: number;
 }
 
 
@@ -191,14 +191,22 @@ export const transcribeAudioMerged = async (sessionId: string)=> {
 
     const assessedPhrases = await Promise.all(assessmentPromises);
 
-    // remove waveBuffer from assessedPhrase
-    const finalPhrases = assessedPhrases.map(({ wavBuffer, ...rest }) => rest);    
+
+
+
+    const finalPhrases: PronunciationAssessmenDB[] = assessedPhrases.map(({ wavBuffer, ...rest }) => rest);
+
+
+    // generate recomendation
+    const recommendations = await generateSuggestion(merged);
+
     db.sessions.update({
         where: { id: sessionId },
         data: {
             assessedDetail: JSON.stringify(finalPhrases),
             transcript: JSON.stringify(merged),
-            assessmentStatus: "ASSESSED"
+            assessmentStatus: "ASSESSED",
+            aiSuggestions: JSON.stringify(recommendations),
         }
     }).catch((err) => {
         console.error("Failed to update session with transcription:", err);
