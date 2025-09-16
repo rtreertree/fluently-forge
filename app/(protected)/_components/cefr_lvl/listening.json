@@ -1,0 +1,357 @@
+[
+  {
+    "type": "instruction",
+    "part": 1,
+    "text": "Part 1 — Questions 1–10. Write ONE WORD AND/OR A NUMBER for each answer."
+  },
+  {
+    "type": "instruction",
+    "part": 2,
+    "text": "Part 2 — Questions 11–14: Choose the correct letter, A, B or C. Questions 15–20: Choose TWO letters, A–E for each question pair as indicated."
+  },
+  {
+    "type": "instruction",
+    "part": 3,
+    "text": "Part 3 — Questions 21–26: Choose the correct letter, A, B or C. Questions 27–30: Choose FOUR answers from the box and write the correct letter (A–F) next to questions 27–30."
+  },
+  {
+    "type": "instruction",
+    "part": 4,
+    "text": "Part 4 — Questions 31–40. Write ONE WORD ONLY for each answer."
+  },
+
+  {
+    "id": "C17T1Q1",
+    "part": 1,
+    "prompt": "Beach — making sure the beach does not have …………………… on it",
+    "answer": "litter"
+  },
+  {
+    "id": "C17T1Q2",
+    "part": 1,
+    "prompt": "Beach — no ……………………",
+    "answer": "vehicles"
+  },
+  {
+    "id": "C17T1Q3",
+    "part": 1,
+    "prompt": "Nature reserve — next task is taking action to attract …………………… to the place",
+    "answer": "butterflies"
+  },
+  {
+    "id": "C17T1Q4",
+    "part": 1,
+    "prompt": "Nature reserve — identifying types of ……………………",
+    "answer": "trees"
+  },
+  {
+    "id": "C17T1Q5",
+    "part": 1,
+    "prompt": "Nature reserve — building a new ……………………",
+    "answer": "hide"
+  },
+  {
+    "id": "C17T1Q6",
+    "part": 1,
+    "prompt": "Saturday event — walk across the sands and reach the ……………………",
+    "answer": "island"
+  },
+  {
+    "id": "C17T1Q7",
+    "part": 1,
+    "prompt": "Saturday event — wear appropriate ……………………",
+    "answer": "boots"
+  },
+  {
+    "id": "C17T1Q8",
+    "part": 1,
+    "prompt": "Woodwork session — suitable for …………………… to participate in",
+    "answer": "children"
+  },
+  {
+    "id": "C17T1Q9",
+    "part": 1,
+    "prompt": "Woodwork session — making …………………… out of wood",
+    "answer": "toys"
+  },
+  {
+    "id": "C17T1Q10",
+    "part": 1,
+    "prompt": "Woodwork session — cost of session (no camping): £ ……………………",
+    "answer": "25"
+  },
+  {
+    "id": "C17T1Q11",
+    "part": 2,
+    "prompt": "Boat trip round Tasmania — maximum number of people who can stand on each side of the boat",
+    "options": {
+      "A": "9",
+      "B": "15",
+      "C": "18"
+    },
+    "answer": "B"
+  },
+  {
+    "id": "C17T1Q12",
+    "part": 2,
+    "prompt": "Boat trip round Tasmania — what colour are the tour boats?",
+    "options": {
+      "A": "dark red",
+      "B": "jet black",
+      "C": "light green"
+    },
+    "answer": "C"
+  },
+  {
+    "id": "C17T1Q13",
+    "part": 2,
+    "prompt": "Boat trip round Tasmania — which lunchbox is suitable for someone who doesn’t eat meat or fish?",
+    "options": {
+      "A": "Lunchbox 1",
+      "B": "Lunchbox 2",
+      "C": "Lunchbox 3"
+    },
+    "answer": "B"
+  },
+  {
+    "id": "C17T1Q14",
+    "part": 2,
+    "prompt": "Boat trip round Tasmania — what should people do with their litter?",
+    "options": {
+      "A": "take it home",
+      "B": "hand it to a member of staff",
+      "C": "put it in the bins provided on the boat"
+    },
+    "answer": "C"
+  },
+  {
+    "id": "C17T1Q15-16",
+    "part": 2,
+    "prompt": "Which TWO features of the lighthouse does Lou mention?",
+    "options": {
+      "A": "why it was built",
+      "B": "who built it",
+      "C": "how long it took to build",
+      "D": "who staffed it",
+      "E": "what it was built with"
+    },
+    "answer": [
+      "A",
+      "D"
+    ]
+  },
+  {
+    "id": "C17T1Q17-18",
+    "part": 2,
+    "prompt": "Which TWO types of creature might come close to the boat?",
+    "options": {
+      "A": "sea eagles",
+      "B": "fur seals",
+      "C": "dolphins",
+      "D": "whales",
+      "E": "penguins"
+    },
+    "answer": [
+      "B",
+      "C"
+    ]
+  },
+  {
+    "id": "C17T1Q19-20",
+    "part": 2,
+    "prompt": "Which TWO points does Lou make about the caves?",
+    "options": {
+      "A": "Only large tourist boats can visit them.",
+      "B": "The entrances to them are often blocked.",
+      "C": "It is too dangerous for individuals to go near them.",
+      "D": "Someone will explain what is inside them.",
+      "E": "They cannot be reached on foot."
+    },
+    "answer": [
+      "D",
+      "E"
+    ]
+  },
+  {
+    "id": "C17T1Q21",
+    "part": 3,
+    "prompt": "What problem did both Diana and Tim have when arranging their work experience?",
+    "options": {
+      "A": "make initial contact with suitable farms",
+      "B": "organising transport to and from the farm",
+      "C": "finding a placement for the required length of time"
+    },
+    "answer": "A"
+  },
+  {
+    "id": "C17T1Q22",
+    "part": 3,
+    "prompt": "Tim was pleased to be able to help ……………………",
+    "options": {
+      "A": "a lamb that had a broken leg.",
+      "B": "a sheep that was having difficulty giving birth.",
+      "C": "a newly born lamb that was having trouble feeding."
+    },
+    "answer": "B"
+  },
+  {
+    "id": "C17T1Q23",
+    "part": 3,
+    "prompt": "Diana says the sheep on her farm ……………………",
+    "options": {
+      "A": "were of various different varieties.",
+      "B": "were mainly reared for their meat.",
+      "C": "had better quality wool than sheep on the hills."
+    },
+    "answer": "B"
+  },
+  {
+    "id": "C17T1Q24",
+    "part": 3,
+    "prompt": "What did the students learn about adding supplements to chicken feed?",
+    "options": {
+      "A": "These should only be given if specially needed.",
+      "B": "It is worth paying extra for the most effective ones.",
+      "C": "The amount given at one time should be limited."
+    },
+    "answer": "A"
+  },
+  {
+    "id": "C17T1Q25",
+    "part": 3,
+    "prompt": "What happened when Diana was working with dairy cows?",
+    "options": {
+      "A": "She identified some cows incorrectly.",
+      "B": "She accidentally threw some milk away.",
+      "C": "She made a mistake when storing milk."
+    },
+    "answer": "C"
+  },
+  {
+    "id": "C17T1Q26",
+    "part": 3,
+    "prompt": "What did both farmers mention about vets and farming?",
+    "options": {
+      "A": "Vets are failing to cope with some aspects of animal health.",
+      "B": "There needs to be a fundamental change in the training of vets.",
+      "C": "Some jobs could be done by the farmer rather than by a vet."
+    },
+    "answer": "C"
+  },
+  {
+    "id": "C17T1Q27",
+    "part": 3,
+    "prompt": "Module: Medical terminology — what opinion did the students give? (Write letter A–F)",
+    "options": {
+      "A": "Tim found this easier than expected.",
+      "B": "Tim thought this was not very clearly organised.",
+      "C": "Diana may do some further study on this.",
+      "D": "They both found the reading required for this was difficult.",
+      "E": "Tim was shocked at something he learned on this module.",
+      "F": "They were both surprised how little is known about some aspects of this."
+    },
+    "answer": "A"
+  },
+  {
+    "id": "C17T1Q28",
+    "part": 3,
+    "prompt": "Module: Diet and nutrition — what opinion did the students give? (Write letter A–F)",
+    "options": {
+      "A": "Tim found this easier than expected.",
+      "B": "Tim thought this was not very clearly organised.",
+      "C": "Diana may do some further study on this.",
+      "D": "They both found the reading required for this was difficult.",
+      "E": "Tim was shocked at something he learned on this module.",
+      "F": "They were both surprised how little is known about some aspects of this."
+    },
+    "answer": "D"
+  },
+  {
+    "id": "C17T1Q29",
+    "part": 3,
+    "prompt": "Module: Animal disease — what opinion did the students give? (Write letter A–F)",
+    "options": {
+      "A": "Tim found this easier than expected.",
+      "B": "Tim thought this was not very clearly organised.",
+      "C": "Diana may do some further study on this.",
+      "D": "They both found the reading required for this was difficult.",
+      "E": "Tim was shocked at something he learned on this module.",
+      "F": "They were both surprised how little is known about some aspects of this."
+    },
+    "answer": "E"
+  },
+  {
+    "id": "C17T1Q30",
+    "part": 3,
+    "prompt": "Module: Wildlife medication — what opinion did the students give? (Write letter A–F)",
+    "options": {
+      "A": "Tim found this easier than expected.",
+      "B": "Tim thought this was not very clearly organised.",
+      "C": "Diana may do some further study on this.",
+      "D": "They both found the reading required for this was difficult.",
+      "E": "Tim was shocked at something he learned on this module.",
+      "F": "They were both surprised how little is known about some aspects of this."
+    },
+    "answer": "C"
+  },
+  {
+    "id": "C17T1Q31",
+    "part": 4,
+    "prompt": "Mazes are a type of ……………………",
+    "answer": "puzzle"
+  },
+  {
+    "id": "C17T1Q32",
+    "part": 4,
+    "prompt": "………………… is needed to navigate through a maze",
+    "answer": "skill"
+  },
+  {
+    "id": "C17T1Q33",
+    "part": 4,
+    "prompt": "The word ‘maze’ is derived from a word meaning a feeling of ……………………",
+    "answer": "confusion"
+  },
+  {
+    "id": "C17T1Q34",
+    "part": 4,
+    "prompt": "Labyrinths have frequently been used in …………………… and prayer",
+    "answer": "meditation"
+  },
+  {
+    "id": "C17T1Q35",
+    "part": 4,
+    "prompt": "Ancient carvings on …………………… have been found across many cultures",
+    "answer": "rocks"
+  },
+  {
+    "id": "C17T1Q36",
+    "part": 4,
+    "prompt": "Ancient Greeks used the symbol on ……………………",
+    "answer": "coins"
+  },
+  {
+    "id": "C17T1Q37",
+    "part": 4,
+    "prompt": "The largest surviving turf labyrinth once had a big …………………… at its centre",
+    "answer": "mound"
+  },
+  {
+    "id": "C17T1Q38",
+    "part": 4,
+    "prompt": "Walking a labyrinth can reduce a person’s …………………… rate",
+    "answer": "heart"
+  },
+  {
+    "id": "C17T1Q39",
+    "part": 4,
+    "prompt": "Patients who can’t walk can use ‘finger labyrinths’ made from ……………………",
+    "answer": "wood"
+  },
+  {
+    "id": "C17T1Q40",
+    "part": 4,
+    "prompt": "Research has shown that Alzheimer’s sufferers experience less ……………………",
+    "answer": "anxiety"
+  }
+]
