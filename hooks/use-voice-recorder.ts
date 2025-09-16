@@ -1,12 +1,17 @@
+import { mergeAudioBlobsInParallel } from '@/lib/audio';
+import { useSession } from 'next-auth/react';
 import { useRef, useState, useEffect, useCallback } from 'react';
 
 export function useVoiceRecorder() {
+	const session = useSession();
 	const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 	const [audioUrl, setAudioUrl] = useState<string | null>(null);
 	const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+	const [sessionID, setSessionID] = useState<string | null>(null);
 	const [isRecording, setIsRecording] = useState(false);
 	const [isPaused, setIsPaused] = useState(false);
 	const [timer, setTimer] = useState(0);
+	const [status, setStatus] = useState<"idle" | "recording" | "paused" | "stopped" | "uploading" | "error" | "success">("idle");
 	const timerIntervalRef = useRef<number | null>(null);
 	const chunksRef = useRef<Blob[]>([]);
 
@@ -21,7 +26,7 @@ export function useVoiceRecorder() {
 
 	const getWaveform = useCallback((): Uint8Array | null => {
 		if (analyserRef.current && dataArrayRef.current) {
-			analyserRef.current.getByteTimeDomainData(dataArrayRef.current);
+			analyserRef.current.getByteTimeDomainData(dataArrayRef.current as Uint8Array<any>);
 			return dataArrayRef.current;
 		}
 		return null;
@@ -29,7 +34,7 @@ export function useVoiceRecorder() {
 
 	const getCurrentVolume = useCallback(() => {
 		if (analyserRef.current && dataArrayRef.current) {
-			analyserRef.current.getByteTimeDomainData(dataArrayRef.current);
+			analyserRef.current.getByteTimeDomainData(dataArrayRef.current as Uint8Array<any>);
 			let sumSquares = 0;
 			for (let i = 0; i < dataArrayRef.current.length; i++) {
 				const value = dataArrayRef.current[i] - 128;
@@ -181,13 +186,9 @@ export function useVoiceRecorder() {
 		) {
 			mediaRecorderRef.current.stop();
 		}
-	}, [isRecording]);
 
-	const save = useCallback(() => {
-		console.log(audioBlob);
-		if (!audioBlob) return null;
-		return audioBlob;
-	}, [audioBlob]);
+		// sendRecordingToServer();
+	}, [isRecording]);
 
 	return {
 		audioUrl,
@@ -199,7 +200,6 @@ export function useVoiceRecorder() {
 		pause,
 		resume,
 		stop,
-		save,
 		getWaveform,
 		isVisualizing,
 		analyserRef,

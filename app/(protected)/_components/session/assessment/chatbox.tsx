@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card'
 import { MergedTranscription } from '@/actions/azureHandler'
 
 interface ChatBoxProps {
-    messages: MergedTranscription[]
+    messages: MergedTranscription[] | string
 }
 
 interface ChatWordProps {
@@ -51,13 +51,16 @@ export default function TranscriptionChat({ messages }: ChatBoxProps) {
     return (
         <Card className="w-[500px] h-[700px] shadow-lg rounded-lg flex flex-col">
             <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-900">
-                {messages.map((msg, idx) => (
-                    <ChatBubble
+                {typeof messages === "string" ? (
+                    <ChatBubble message={messages} isUser={false} />
+                ) : (
+                    messages.map((msg, idx) => (
+                        <ChatBubble
                         key={idx}
                         message={msg.text}
                         isUser={msg.speaker === 1}
                     />
-                ))}
+                )))}
                 <div ref={messagesEndRef} />
             </div>
         </Card>

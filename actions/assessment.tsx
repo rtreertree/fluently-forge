@@ -3,11 +3,11 @@
 
 import * as sdk from "microsoft-cognitiveservices-speech-sdk";
 import { db } from "@/lib/db";
-import { MergedTranscription, transcribeAudioMerged } from "./azureHandler";
+import { MergedTranscription, monologueAssessment, transcribeAudioMerged, TranscriptionResponse } from "./azureHandler";
 import { openaiClient } from "@/lib/openai";
 import * as zod from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
-import { assessmentRecommendationPrompt } from "@/data/prompts";
+import { assessmentRecommendationPrompt, monologueRecommendationPrompt } from "@/data/prompts";
 
 export interface PronunciationAssessmentWord {
     Word: string;
@@ -83,7 +83,6 @@ export async function assessPronunciation(script: string, audioBuffer?: Buffer):
                 let detailResult: PronunciationAssessmentDetailResult | undefined;
                 try {
                     detailResult = JSON.parse(JSON.stringify(pronunciation_result.detailResult));
-                    console.log("Parsed detailResult:", detailResult);
                 } catch (_err) { /* ignore parse error */ }
 
                 if (detailResult) {
@@ -134,23 +133,39 @@ export async function getAssessmentFromDB(sessinID: string) {
     return data;
 }
 
-export async function getTranscriptionFromDB(sessinID: string) {
+export async function getTranscriptionFromDB(sessionID: string) {
     const resp = await db.sessions.findFirst({
         where: {
-            id: sessinID
+            id: sessionID
         },
         select: {
             transcript: true,
             aiSuggestions: true,
             assessedDetail: true,
+            type: true,
         }
     });
 
-    if (!resp || !resp.transcript || !resp.aiSuggestions || !resp.assessedDetail) {
+    if (!resp ) {
+        throw new Error("No response data found for the given session ID.");
+    }
+
+    if (!resp.transcript) {
         throw new Error("No transcription data found for the given session ID.");
     }
 
-    const transcription: MergedTranscription[] = JSON.parse(resp.transcript);
+    console.log("Raw suggestions from DB:", resp.aiSuggestions);
+    if (!resp.aiSuggestions) {
+        throw new Error("No AI suggestions found for the given session ID.");
+    }
+
+    if (!resp.assessedDetail) {
+        throw new Error("No assessed detail found for the given session ID.");
+    }
+
+
+
+    // const transcription: MergedTranscription[] = JSON.parse(resp.transcript);
     const recommendations: Recommendation[] = JSON.parse(resp.aiSuggestions);
     const assessedDetail: PronunciationAssessmenDB[] = JSON.parse(resp.assessedDetail);
 
@@ -167,11 +182,11 @@ export async function getTranscriptionFromDB(sessinID: string) {
     assessedDetail.forEach((t) => {
         t.assessment.forEach((a) => {
             totalCount++;
-                totalAccuracy += a.PronunciationAssessment.AccuracyScore;
-                totalFluency += a.PronunciationAssessment.FluencyScore;
-                totalProsody += a.PronunciationAssessment.ProsodyScore;
-                totalCompleteness += a.PronunciationAssessment.CompletenessScore;
-                totalPronScore += a.PronunciationAssessment.PronScore;
+            totalAccuracy += a.PronunciationAssessment.AccuracyScore;
+            totalFluency += a.PronunciationAssessment.FluencyScore;
+            totalProsody += a.PronunciationAssessment.ProsodyScore;
+            totalCompleteness += a.PronunciationAssessment.CompletenessScore;
+            totalPronScore += a.PronunciationAssessment.PronScore;
         });
     });
 
@@ -184,8 +199,14 @@ export async function getTranscriptionFromDB(sessinID: string) {
     const PronScore = totalCount ? round(totalPronScore / totalCount) : 0;
 
 
+    if (resp.type === "MONOLOGUE") {
+        const transcription = resp.transcript;
+        return { transcription, recommendations, pronunciation: { Accuracy, Fluency, Prosody, PronScore } };
 
-    return { transcription, recommendations, pronunciation: { Accuracy, Fluency, Prosody, PronScore } };
+    } else {
+        const transcription: MergedTranscription[] = JSON.parse(resp.transcript);
+        return { transcription, recommendations, pronunciation: { Accuracy, Fluency, Prosody, PronScore } };
+    }
 }
 
 export interface Recommendation {
@@ -194,18 +215,15 @@ export interface Recommendation {
     reason: string;
 }
 
-export async function generateSuggestion(transcription: MergedTranscription[]): Promise<Recommendation[]> {
-    // Define schema for structured output
-
-    const recommendationsZod = zod.object({
+const recommendationsZod = zod.object({
         recommendation: zod.array(zod.object({
             original: zod.string(),
             improved: zod.string(),
             reason: zod.string(),
         })).min(3, "At least 3 recommendations are required").max(15, "No more than 15 recommendations are allowed"),
-    });
+});
 
-    console.log("Generating suggestions for transcription:", transcription);
+export async function generateSuggestion(transcription: MergedTranscription[]): Promise<Recommendation[]> {    
 
     // Call OpenAI with structured parsing
     const completion = await openaiClient.responses.parse({
@@ -234,24 +252,81 @@ export async function generateSuggestion(transcription: MergedTranscription[]): 
     return parsedResponse.recommendation;
 }
 
-
-export async function startAssessmentPipeline(sessionId: string) {
-    console.log("Starting assessment pipeline for session:", sessionId);
-
+export async function monologueSuggestion(transcription: string, sessionId: string) {
     const session = await db.sessions.findFirst({
         where: { id: sessionId },
         select: {
             userId: true,
             topic: true,
+            type: true,
+            question: true,
             assessedDetail: true,
             transcript: true,
             assessmentStatus: true,
-        }
+        },
+    });
+
+    if (!session) {
+        throw new Error("Session not found");
+    }
+;
+
+    // Call OpenAI with structured parsing
+    const completion = await openaiClient.responses.parse({
+        model: "gpt-5",
+        input: [
+            {
+                role: "system",
+                content: monologueRecommendationPrompt(session.question || ""),
+            },
+            {
+                role: "user",
+                content: transcription,
+            },
+        ],
+        text: {
+            format: zodTextFormat(recommendationsZod, "recommendation"),
+        },
+    });
+
+    // Parse structured response
+    const parsedResponse = completion.output_parsed;
+    if (!parsedResponse) {
+        throw new Error("Error parsing response");
+    }
+
+    return parsedResponse.recommendation;
+}
+
+
+export async function startAssessmentPipeline(sessionId: string) {
+    console.log("Starting assessment pipeline for session:", sessionId);
+
+    const session = await db.sessions.update({
+        where: { id: sessionId },
+        data: {
+            status: "PENDING", // or whatever new status you want
+        },
+        select: {
+            userId: true,
+            topic: true,
+            type: true,
+            assessedDetail: true,
+            transcript: true,
+            assessmentStatus: true,
+        },
     });
 
     if (!session) {
         throw new Error("Session not found");
     }
 
-    await transcribeAudioMerged(sessionId);
+    if (session.type === "SCENARIO_CREATION" || session.type === "SMALLTALK") {
+        await transcribeAudioMerged(sessionId);
+    }
+
+    if (session.type === "MONOLOGUE") {
+        await monologueAssessment(sessionId);
+    }
+
 }

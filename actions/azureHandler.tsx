@@ -3,7 +3,7 @@
 import FormData, { Readable } from 'form-data';
 import { getRecordings } from './fileHandler';
 import { audioBufferToWavBlob, bufferToAudioBuffer, readableToBuffer, cutRawAudioBuffer, decodeWavToRawAudioBuffer, encodeRawAudioBufferToWav, RawAudioBuffer } from '@/lib/audio';
-import { assessPronunciation, generateSuggestion, PronunciationAssessmenDB, PronunciationAssessmentWord } from './assessment';
+import { assessPronunciation, generateSuggestion, monologueSuggestion, PronunciationAssessmenDB, PronunciationAssessmentWord } from './assessment';
 import { db } from '@/lib/db';
 
 import axios from 'axios';
@@ -26,6 +26,19 @@ export interface MergedTranscription {
     speaker: number;
 }
 
+
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+    let lastErr: unknown;
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await fn();
+        } catch (err) {
+            lastErr = err;
+            if (i < retries - 1) await new Promise(res => setTimeout(res, delay));
+        }
+    }
+    throw lastErr;
+}
 
 export const mergeTranscriptions = async (
     agent: TranscriptionResponse[],
@@ -133,87 +146,153 @@ export const transcribeAudio = async (audioBuffer: Buffer) => {
     return result.data.phrases as TranscriptionResponse[];
 }
 
-export const transcribeAudioMerged = async (sessionId: string)=> {
-    const readable = await getRecordings(sessionId, "user");
-    if (!readable) throw new Error("Failed to retrieve user recording."); 
-    console.log("User recording retrieved successfully. now converting to buffer...");
-    const audioBuffer = await readableToBuffer(readable);
-    readable.destroy();
 
-    const readableAgent = await getRecordings(sessionId, "agent");
-    if (!readableAgent) throw new Error("Failed to retrieve agent recording.");
-    console.log("Agent recording retrieved successfully. now converting to buffer...");
-    const audioBufferAgent = await readableToBuffer(readableAgent);
-    readableAgent.destroy();
+export const transcribeAudioMerged = async (
+    sessionId: string
+) => {
+    const log = (step: string, msg: string) =>
+        console.log(`[transcribeAudioMerged][${sessionId}][${step}] ${msg}`);
 
-    console.log("Transcribing user audio...");
-    const transcription = await transcribeAudio(audioBuffer);
-    const transcriptionAgent = await transcribeAudio(audioBufferAgent);
-
-    console.log("Merging transcriptions...");
-    const merged = await mergeTranscriptions(transcriptionAgent, transcription);
-
-    console.log(merged);
-
-    console.log("Trimming audio buffer to remove silence...");
-    const audioData = decodeWavToRawAudioBuffer(audioBuffer);
-
-    console.log("Processing transcription phrases...");
-
-    // split data into chucks according to transcription with promise.all
-    const transcriptionPromises =  transcription.map(async (phrase) => {
-        const start = phrase.offsetMilliseconds;
-        const duration = phrase.durationMilliseconds;
-
-        // Cut the audio buffer for this phrase
-        const cutAudio = cutRawAudioBuffer(audioData, start, duration);
-        console.log(`Cut audio for phrase "${phrase.text}" from ${start}ms to ${start + duration}ms`);
-
-        // Convert the cut audio back to WAV format
-        const wavBuffer = encodeRawAudioBufferToWav(cutAudio);
-        return {
-            ...phrase,
-            wavBuffer
+    try {
+        const fetchRecordingBuffer = async (role: "user" | "agent") => {
+            const readable = await getRecordings(sessionId, role);
+            if (!readable) throw new Error(`Failed to retrieve ${role} recording.`);
+            log("fetch", `${role} recording retrieved.`);
+            const buffer = await readableToBuffer(readable);
+            readable.destroy();
+            return buffer;
         };
-    });
 
-    const phrases = await Promise.all(transcriptionPromises);
+        // Step 1: fetch both recordings
+        const [userBuffer, agentBuffer] = await Promise.all([
+            fetchRecordingBuffer("user"),
+            fetchRecordingBuffer("agent"),
+        ]);
 
-    console.log("create an assessment for each phrase in parallel...");
-    // Process each phrase in parallel for pronunciation assessment
-    const assessmentPromises = phrases.map(async (phrase) => {
-        const assessment = await assessPronunciation(phrase.text, phrase.wavBuffer);
-        return {
-            ...phrase,
-            assessment
-        };
-    });
+        // Step 2: transcribe with retry
+        log("transcribe", "Starting transcription...");
+        const [userTranscription, agentTranscription] = await Promise.all([
+            withRetry(() => transcribeAudio(userBuffer)),
+            withRetry(() => transcribeAudio(agentBuffer)),
+        ]);
 
-    const assessedPhrases = await Promise.all(assessmentPromises);
+        // Step 3: merge
+        log("merge", "Merging transcripts...");
+        const mergedTranscript = await mergeTranscriptions(agentTranscription, userTranscription);
+
+        // Step 4: phrase-level processing
+        log("phrases", "Decoding & cutting user audio...");
+        const audioData = decodeWavToRawAudioBuffer(userBuffer);
+
+        const phraseChunks = await Promise.all(
+            userTranscription.map(async (phrase) => {
+                const { offsetMilliseconds: start, durationMilliseconds: duration } = phrase;
+                const cutAudio = cutRawAudioBuffer(audioData, start, duration);
+                const wavBuffer = encodeRawAudioBufferToWav(cutAudio);
+                log("phrase", `"${phrase.text}" cut from ${start}–${start + duration}ms`);
+                return { ...phrase, wavBuffer };
+            })
+        );
+
+        // Step 5: pronunciation assessment
+        log("assessment", "Running assessments in parallel...");
+        const finalPhrases = await Promise.all(
+            phraseChunks.map(async ({ wavBuffer, ...phrase }) => {
+                const assessment = await withRetry(() => assessPronunciation(phrase.text, wavBuffer));
+                return { ...phrase, assessment };
+            })
+        );
+
+        // Step 6: AI suggestions
+        log("suggestions", "Generating AI recommendations...");
+        const recommendations = await generateSuggestion(mergedTranscript);
+
+        // Step 7: persist
+        log("db", "Saving results...");
+        await db.sessions.update({
+            where: { id: sessionId },
+            data: {
+                assessedDetail: JSON.stringify(finalPhrases),
+                transcript: JSON.stringify(mergedTranscript),
+                assessmentStatus: "ASSESSED",
+                aiSuggestions: JSON.stringify(recommendations),
+            },
+        });
+
+        log("done", "Session processed successfully ✅");
+        return { mergedTranscript, finalPhrases, recommendations };
+    } catch (err) {
+        console.error(`[transcribeAudioMerged][${sessionId}] ❌`, err);
+        throw err;
+    }
+};
 
 
+export const monologueAssessment = async (
+    sessionId: string
+) => {
+    const log = (step: string, msg: string) =>
+        console.log(`[monologueAssessment][${sessionId}][${step}] ${msg}`);
 
+    try {
+        // Step 1: fetch user recording
+        const readable = await getRecordings(sessionId, "user");
+        if (!readable) throw new Error("Failed to retrieve user recording.");
+        log("fetch", "User recording retrieved.");
 
-    const finalPhrases: PronunciationAssessmenDB[] = assessedPhrases.map(({ wavBuffer, ...rest }) => rest);
+        const userBuffer = await readableToBuffer(readable);
+        readable.destroy();
 
+        // Step 2: transcribe
+        log("transcribe", "Transcribing user audio...");
+        const userTranscript = await transcribeAudio(userBuffer);
 
-    // generate recomendation
-    const recommendations = await generateSuggestion(merged);
+        // get text only for logging
+        const textOnly = userTranscript.map(t => t.text).join(" ");
 
-    db.sessions.update({
-        where: { id: sessionId },
-        data: {
-            assessedDetail: JSON.stringify(finalPhrases),
-            transcript: JSON.stringify(merged),
-            assessmentStatus: "ASSESSED",
-            aiSuggestions: JSON.stringify(recommendations),
-        }
-    }).catch((err) => {
-        console.error("Failed to update session with transcription:", err);
-        throw new Error("Failed to update session with transcription.");
-    });
+        // Step 3: phrase-level processing
+        log("phrases", "Decoding & cutting user audio...");
+        const audioData = decodeWavToRawAudioBuffer(userBuffer);
 
+        const phraseChunks = await Promise.all(
+            userTranscript.map(async (phrase) => {
+                const { offsetMilliseconds: start, durationMilliseconds: duration } = phrase;
+                const cutAudio = cutRawAudioBuffer(audioData, start, duration);
+                const wavBuffer = encodeRawAudioBufferToWav(cutAudio);
+                log("phrase", `"${phrase.text}" cut from ${start}–${start + duration}ms`);
+                return { ...phrase, wavBuffer };
+            })
+        );
 
-    console.log("All phrases assessed successfully.");
-    console.log("Returning merged transcription with assessments...");
-}
+        // Step 4: pronunciation assessment
+        log("assessment", "Assessing pronunciation for all phrases...");
+        const finalPhrases = await Promise.all(
+            phraseChunks.map(async ({ wavBuffer, ...phrase }) => {
+                const assessment = await assessPronunciation(phrase.text, wavBuffer);
+                return { ...phrase, assessment };
+            })
+        );
+
+        // Step 5: AI suggestions
+        log("suggestions", "Generating AI recommendations...");
+        const recommendations = await monologueSuggestion(textOnly, sessionId);
+
+        // Step 6: persist
+        log("db", "Saving results...");
+        await db.sessions.update({
+            where: { id: sessionId },
+            data: {
+                assessedDetail: JSON.stringify(finalPhrases),
+                transcript: textOnly,
+                assessmentStatus: "ASSESSED",
+                aiSuggestions: JSON.stringify(recommendations),
+            },
+        });
+
+        log("done", "User audio processed successfully ✅");
+        return { userTranscript, finalPhrases, recommendations };
+    } catch (err) {
+        console.error(`[transcribeUserAudio][${sessionId}] ❌`, err);
+        throw err;
+    }
+};

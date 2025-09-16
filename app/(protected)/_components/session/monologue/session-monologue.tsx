@@ -9,12 +9,14 @@ import { Card } from "@/components/ui/card";
 import { mergeAudioBlobsInParallel } from "@/lib/audio";
 import { useEffect } from "react";
 import { endSession, getSession } from "@/actions/session";
+import { useRouter } from "next/router";
 
 interface SessionMonologueProps {
     session: sessions;
 }
 
 export const SessionMonologue = ({ session }: SessionMonologueProps) => {
+    const router = useRouter();
     const { isRecording, currentVolume, start, stop, isPaused, pause, resume, audioBlob } = useVoiceRecorder();
     const SVG_SIZE = 250;
 
@@ -42,6 +44,7 @@ export const SessionMonologue = ({ session }: SessionMonologueProps) => {
                     await endSession(session.id);
                     if (res.ok) {
                         console.log("Audio uploaded successfully");
+                        router.push("/session/list");
                     } else {
                         console.error("Error uploading audio", res.statusText);
                     }

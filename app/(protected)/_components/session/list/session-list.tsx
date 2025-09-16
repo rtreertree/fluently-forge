@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { startAssessmentPipeline } from "@/actions/assessment"
 
 const mockData = Array.from({ length: 100 }).map((_, i) => ({
 	date: "20/9/2016",
@@ -83,14 +84,14 @@ export function ListBox({ data }: ListBoxProps) {
 							{currentData.map((item, index) => (
 								<TableRow key={index}>
 									<TableCell className="font-medium">{item.date}</TableCell>
-									<TableCell>{item.status}</TableCell>
+									<TableCell>{(item.assess !== "ASSESSED" ? "In Progress" : "Completed")}</TableCell>
 									<TableCell>{item.type}</TableCell>
 									<TableCell>{item.title}</TableCell>
 									<TableCell className="text-right">
 										<Button
 											variant="outline"
 											size="sm"
-											// disabled={item.assess !== "ASSESSED"}
+											disabled={item.assess !== "ASSESSED"}
 											onClick={() => {
 												window.location.href = `/session/details?id=${item.ssid}`;
 											}}

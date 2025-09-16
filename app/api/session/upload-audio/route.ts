@@ -1,3 +1,5 @@
+"use server";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadSession } from '@/actions/fileHandler';
 import { db } from '@/lib/db';

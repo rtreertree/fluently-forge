@@ -1,6 +1,9 @@
+"use server";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadFile, uploadSession } from '@/actions/fileHandler';
 import { db } from '@/lib/db';
+import { startAssessmentPipeline } from '@/actions/assessment';
 
 
 
@@ -38,6 +41,10 @@ export async function POST(req: NextRequest) {
 
         // Save the files to the server
         await uploadFile(Buffer.from(await userAudio.arrayBuffer()), `${formData.get('session-id')}/user.wav`);
+        
+        console.log("Uploaded user audio for session:", formData.get('session-id'));
+        startAssessmentPipeline(formData.get('session-id') as string);
+        
         return NextResponse.json({ success: true }, { status: 200 });
     } catch (err) {
         console.error(err);

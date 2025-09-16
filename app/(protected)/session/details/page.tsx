@@ -11,7 +11,7 @@ import { set } from "lodash";
 export default function SessionDetails() {
     const searchParams = useSearchParams();
     const id = searchParams.get("id");
-    const [transcription, setTranscription] = useState<MergedTranscription[]>();
+    const [transcription, setTranscription] = useState<MergedTranscription[] | string>();
     const [recommendations, setRecommendations] = useState<Recommendation[]>();
     const [scores, setScores] = useState<{
         Accuracy: number,
@@ -58,7 +58,7 @@ export default function SessionDetails() {
                     </>
                 )
             }
-            <button onClick={onTestAssessment}>testAssessment</button>
+            {/* <button onClick={onTestAssessment}>testAssessment</button> */}
         </div>
     );
 }
