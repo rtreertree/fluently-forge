@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import listeningData from "../_components/cefr_lvl/listening.json";
+import listeningData from "../../_components/cefr_lvl/listening.json";
 
 type RawItem = any;
 type Item =
@@ -32,8 +32,21 @@ export default function ListeningPage() {
   const [results, setResults] = useState<{
     total: number;
     correct: number;
+    percent?: number;
+    band?: string;
     details: Record<string, { correct: boolean; expected: any; user: any; item: Item; correctCount?: number; expectedCount?: number }>;
-  }>({ total: 0, correct: 0, details: {} });
+  }>({ total: 0, correct: 0, percent: undefined, band: undefined, details: {} });
+ 
+  // helper: map percentage -> CEFR band
+  const computeCEFRBand = (percent: number) => {
+    if (isNaN(percent)) return "Unrated";
+    if (percent < 40) return "A1";
+    if (percent < 55) return "A2";
+    if (percent < 70) return "B1";
+    if (percent < 85) return "B2";
+    if (percent < 95) return "C1";
+    return "C2";
+  };
 
   // pagination / compact controls (compact toggle kept, but pagination removed)
   const [page, setPage] = useState(1);
@@ -192,7 +205,9 @@ export default function ListeningPage() {
       details[id ?? `idx-${Object.keys(details).length + 1}`] = { correct: isCorrect, expected, user, item: it, correctCount, expectedCount };
     }
 
-    setResults({ total, correct, details });
+    const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
+    const band = computeCEFRBand(percent);
+    setResults({ total, correct, percent, band, details });
     setShowResults(true);
   };
 
@@ -214,7 +229,12 @@ export default function ListeningPage() {
              <div className="flex items-start justify-between gap-4 mb-4">
                <div>
                  <h2 className="text-lg font-semibold">Your Listening Results</h2>
-                 <div className="text-sm text-gray-600">Score: {results.correct} / {results.total}</div>
+                 <div className="text-sm text-gray-600">Score: {results.correct} / {results.total} — <span className="font-medium">{results.percent ?? 0}%</span></div>
+                 <div className="mt-1">
+                   <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 border">
+                     CEFR Band: <span className="ml-2 text-black">{results.band ?? "Unrated"}</span>
+                   </span>
+                 </div>
                </div>
                <div className="flex items-center gap-2">
              <button onClick={closeResults} className="px-3 py-1 rounded-md border bg-white text-sm">Return</button>
@@ -299,7 +319,7 @@ export default function ListeningPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button onClick={() => router.push("/")} className="px-3 py-1 border rounded-full text-sm bg-white hover:bg-gray-50">Cancel</button>
+                  <button onClick={() => router.push("/home")} className="px-3 py-1 border rounded-full text-sm bg-white hover:bg-gray-50">Cancel</button>
                   <button onClick={finish} className="px-3 py-1 border rounded-full text-sm bg-black text-white hover:opacity-95">Finish Test</button>
                 </div>
               </div>

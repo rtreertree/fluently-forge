@@ -122,20 +122,6 @@ const DailyStreakPage = () => {
             {/* left side — moved further left to avoid overlap */}
             <div className="absolute left-1/2 top-1/2 -translate-y-1/2 -ml-[600px] w-[320px]">
                 <CerfBox />
-                {/* Listening redirect box under CerfBox */}
-                <div className="mt-4 bg-white rounded-xl shadow p-3 border text-center">
-                    <div className="bg-white text-black ">
-                        <div className="text-sm font-medium">Listening Test</div>
-                        <p className="text-xs text-gray-500 mt-1">Short listening diagnostic</p>
-                        <button
-                            onClick={() => router.push("/listening")}
-                            className="w-full mt-3 px-4 py-2 bg-black text-white border border-black rounded-xl shadow-sm hover:shadow-md font-medium"
-                            aria-label="Go to Listening"
-                        >
-                            Go to Listening
-                        </button>
-                    </div>
-                </div>
             </div>
         </div>
     ) : (

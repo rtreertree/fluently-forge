@@ -8,7 +8,7 @@ import { useSession } from "next-auth/react";
 import { saveCefrResult } from "@/actions/cefr-level";
 import type { EnglishLevel } from "@prisma/client";
 
-import questionsData from "../_components/cefr_lvl/question.json";
+import questionsData from "../../_components/cefr_lvl/question.json";
 
 type Question = { id: string; text: string; choices: string[]; answer: string; level?: string };
 
