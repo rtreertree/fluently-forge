@@ -273,7 +273,7 @@ export async function monologueSuggestion(transcription: string, sessionId: stri
 
     // Call OpenAI with structured parsing
     const completion = await openaiClient.responses.parse({
-        model: "gpt-5",
+        model: "gpt-4.1",
         input: [
             {
                 role: "system",
