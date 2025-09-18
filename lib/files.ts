@@ -7,7 +7,6 @@ console.log('Initializing Minio client');
 console.log('MINIO_ENDPOINT:', process.env.MINIO_ENDPOINT);
 
 export const minioClient = globalThis.minioClient || new Minio.Client({
-    // endPoint: 'minio',
     endPoint: process.env.MINIO_ENDPOINT || 'minio',
     port: parseInt(process.env.MINIO_PORT || '9000'),
     useSSL: process.env.MINIO_USE_SSL === 'false',
