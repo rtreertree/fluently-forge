@@ -20,7 +20,7 @@ services:
       MINIO_ROOT_PASSWORD: miniopassword
     volumes:
       - ./volume:/data
-    command: server --address ":9001" --console-address ":9000" /data
+    command: server --address ":9000" --console-address ":9001" /data
     restart: always
     networks:
       - minio
