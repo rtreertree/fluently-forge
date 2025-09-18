@@ -11,7 +11,7 @@ import { useSession } from "next-auth/react";
 import CerfBox from "../_components/cefr_lvl/cerf-box";
 import Loader from "@/components/suspend/loading";
 
-const daysShort = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const daysShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const SESSION_TYPES = [
     { key: "SMALLTALK", label: "Smalltalk" },

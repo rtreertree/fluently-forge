@@ -13,6 +13,8 @@ export interface createSessionInterface {
     voice: string;
     type: SessionType;
     instructions?: string;
+    aiRole?: string;
+    userRole?: string;
     topic: string;
 };
 
@@ -47,7 +49,7 @@ export const createSession = async (sessionSettings: createSessionInterface): Pr
     // background processing
     (async () => {
         if (sessionSettings.type === "SCENARIO_CREATION") {
-            const generatedPrompt = await generateScenarioPrompt(sessionSettings.topic);
+            const generatedPrompt = await generateScenarioPrompt(sessionSettings.topic, sessionSettings.aiRole || "AI", sessionSettings.userRole || "User");
             console.log("Generated scenario prompt:", generatedPrompt);
             sessionSettings.instructions = scenarioCreationPrompt(generatedPrompt.scenario, generatedPrompt.person_a, generatedPrompt.person_b);
         }

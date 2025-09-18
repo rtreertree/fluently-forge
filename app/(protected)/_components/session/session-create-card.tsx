@@ -43,7 +43,7 @@ const SessionCreateCard: React.FC<SessionCreateCardProps> = ({ type }: SessionCr
     return (
         <>
             <Dialog>
-                <DialogContent className="sm:max-w-[420px] p-10">
+                <DialogContent className="sm:max-w-[550px] p-10">
                     <DialogHeader>
                         <DialogTitle>{sessionDescription.name}</DialogTitle>
                         <DialogDescription>

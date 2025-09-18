@@ -9,6 +9,7 @@ import { mergeAudioBlobsInParallel } from "@/lib/audio";
 import { sessions } from "@prisma/client";
 
 type Message = any;
+const LOW_AUDIO_BITRATE = 16000;
 
 const useWebRTCAudioSession = (
     voice: string,
@@ -252,7 +253,10 @@ const useWebRTCAudioSession = (
                         remoteRecorderRef.current = null;
                         remoteRecordedBlobsRef.current = [];
                     }
-                    const remoteRecorder = new MediaRecorder(e.streams[0]);
+                    const remoteRecorder = new MediaRecorder(e.streams[0], {
+                        mimeType: "audio/webm",
+                        audioBitsPerSecond: LOW_AUDIO_BITRATE,
+                    });
                     remoteRecordedBlobsRef.current = [];
                     remoteRecorder.ondataavailable = (evt: BlobEvent) => {
                         if (evt.data && evt.data.size > 0) {
@@ -289,7 +293,10 @@ const useWebRTCAudioSession = (
             });
 
             // ---- Start recording local audio -----
-            const mediaRecorder = new MediaRecorder(stream);
+            const mediaRecorder = new MediaRecorder(stream, {
+                mimeType: "audio/webm",
+                audioBitsPerSecond: LOW_AUDIO_BITRATE,
+            });
             recordedBlobsRef.current = [];
             mediaRecorder.ondataavailable = (event: BlobEvent) => {
                 if (event.data && event.data.size > 0) {
@@ -331,6 +338,7 @@ const useWebRTCAudioSession = (
                 setStatus("Failed to convert audio blobs");
                 return;
             }
+
             const formData = new FormData();
             formData.append("user-audio", userBlobWav);
             formData.append("agent-audio", agentBlobWav);

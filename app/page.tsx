@@ -86,7 +86,7 @@ export default function Home() {
                         onClick={() => router.push("/auth/login")} 
                         className="px-8 py-4 rounded-full bg-black text-white font-bold hover:bg-black/80 transition text-lg"
                     >
-                        Get Started Free
+                        Get Started For Free
                     </Button>
                 </section>
 
@@ -222,7 +222,7 @@ export default function Home() {
  
              {/* Footer */}
              <footer className="bg-white border-t border-gray-200 py-6 text-center text-gray-600 text-sm">
-                 © 2025 English Learning AI · Built by rtee, kla, poon · MS.5 / EAI
+                 © 2025 English Learning AI · Built by RT, Kla, Poon · MS.6 / EAI
              </footer>
         </div>
      );

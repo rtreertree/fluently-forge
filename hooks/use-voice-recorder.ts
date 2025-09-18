@@ -2,6 +2,8 @@ import { mergeAudioBlobsInParallel } from '@/lib/audio';
 import { useSession } from 'next-auth/react';
 import { useRef, useState, useEffect, useCallback } from 'react';
 
+const LOW_AUDIO_BITRATE = 16000;
+
 export function useVoiceRecorder() {
 	const session = useSession();
 	const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -102,7 +104,10 @@ export function useVoiceRecorder() {
 		setTimer(0);
 
 		const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-		const mediaRecorder = new window.MediaRecorder(stream);
+		const mediaRecorder = new MediaRecorder(stream, {
+			mimeType: "audio/webm",
+			audioBitsPerSecond: LOW_AUDIO_BITRATE,
+		});
 		chunksRef.current = [];
 
 		mediaRecorder.ondataavailable = (e: BlobEvent) => {

@@ -1,3 +1,5 @@
+"use client";
+
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { sessions } from "@prisma/client";
 import RadialVolumeBars from "../session-radialbars";
@@ -9,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { mergeAudioBlobsInParallel } from "@/lib/audio";
 import { useEffect } from "react";
 import { endSession, getSession } from "@/actions/session";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 
 interface SessionMonologueProps {
     session: sessions;

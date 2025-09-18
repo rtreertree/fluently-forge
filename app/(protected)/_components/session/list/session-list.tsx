@@ -84,8 +84,8 @@ export function ListBox({ data }: ListBoxProps) {
 							{currentData.map((item, index) => (
 								<TableRow key={index}>
 									<TableCell className="font-medium">{item.date}</TableCell>
-									<TableCell>{(item.assess !== "ASSESSED" ? "In Progress" : "Completed")}</TableCell>
-									<TableCell>{item.type}</TableCell>
+									<TableCell>{item.assess !== "ASSESSED" ? "Processing" : "Completed"}</TableCell>
+									<TableCell>{item.type === "scenario_creation" ? "scenario" : item.type}</TableCell>
 									<TableCell>{item.title}</TableCell>
 									<TableCell className="text-right">
 										<Button
