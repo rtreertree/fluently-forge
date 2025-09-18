@@ -22,3 +22,9 @@ services:
       - ./volume:/data
     command: server --address ":9001" --console-address ":9000" /data
     restart: always
+    networks:
+      - minio
+
+networks:
+  minio:
+    driver: bridge
