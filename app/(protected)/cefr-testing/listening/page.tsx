@@ -100,7 +100,8 @@ export default function ListeningPage() {
 
   // create audio only on client side
   useEffect(() => {
-    const a = new Audio("test1.mp3");
+    // load from public root
+    const a = new Audio("/test1.mp3");
     a.preload = "auto";
     // keep a local reference
     audioRef.current = a;
@@ -139,23 +140,17 @@ export default function ListeningPage() {
     });
   };
 
-  const startPlayback = () => {
-    const a = audioRef.current;
-    if (!a) return;
-
-    a.play()
-      .then(() => setPlaying(true))
-      .catch(() => setPlaying(false));
-  };
 
   // safe helper that ensures an Audio exists and plays it
   const runAudio = () => {
     let a = audioRef.current;
     if (!a && typeof Audio !== "undefined") {
-      a = new Audio("public/test1.mp3");
+      // create with correct public path and mirror the initialization above
+      a = new Audio("/test1.mp3");
       a.preload = "auto";
+      const onEnded = () => setPlaying(false);
+      a.addEventListener("ended", onEnded);
       audioRef.current = a;
-      a.addEventListener("ended", () => setPlaying(false));
     }
     if (!a) return;
     a.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
@@ -209,13 +204,6 @@ export default function ListeningPage() {
     const band = computeCEFRBand(percent);
     setResults({ total, correct, percent, band, details });
     setShowResults(true);
-  };
-
-  // fmtTime kept but not used for now
-  const fmtTime = (s: number) => {
-    const m = Math.floor(s/60).toString().padStart(2,"0");
-    const sec = (s%60).toString().padStart(2,"0");
-    return `${m}:${sec}`;
   };
 
   return (
