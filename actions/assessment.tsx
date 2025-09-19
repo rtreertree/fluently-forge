@@ -128,7 +128,7 @@ export async function getAssessmentFromDB(sessinID: string) {
     if (!resp || !resp.assessedDetail) {
         throw new Error("No assessment data found for the given session ID.");
     }
-
+    console.log("Raw assessment detail from DB:", resp.assessedDetail);
     const data: PronunciationAssessmentDetailResult[] = JSON.parse(resp.assessedDetail);
     return data;
 }
@@ -181,6 +181,11 @@ export async function getTranscriptionFromDB(sessionID: string) {
     // find mean accuracy score for each assessedDetail item and add to transcription item
     assessedDetail.forEach((t) => {
         t.assessment.forEach((a) => {
+            if (!a.PronunciationAssessment) return;
+            if (a.PronunciationAssessment.AccuracyScore === undefined || 
+                a.PronunciationAssessment.FluencyScore === undefined || 
+                a.PronunciationAssessment.ProsodyScore === undefined || 
+                a.PronunciationAssessment.PronScore === undefined) return;
             totalCount++;
             totalAccuracy += a.PronunciationAssessment.AccuracyScore;
             totalFluency += a.PronunciationAssessment.FluencyScore;
@@ -189,6 +194,13 @@ export async function getTranscriptionFromDB(sessionID: string) {
             totalPronScore += a.PronunciationAssessment.PronScore;
         });
     });
+
+    console.log("Total Count:", totalCount);
+    console.log("Total Accuracy:", totalAccuracy);
+    console.log("Total Fluency:", totalFluency);
+    console.log("Total Prosody:", totalProsody);
+    console.log("Total Completeness:", totalCompleteness);
+    console.log("Total PronScore:", totalPronScore);
 
     const round = (num: number) => Math.round(num * 100) / 100;
 
