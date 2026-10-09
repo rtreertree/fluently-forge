@@ -27,12 +27,12 @@ An AI-powered language-learning web app. Learners hold realtime voice conversati
 
 | Feature         | Route             | Description                                                      | Status      |
 | --------------- | ----------------- | ---------------------------------------------------------------- | ----------- |
-| Welcome page    | `/`               | Landing page with information about the project                  | Not started |
-| Home dashboard  | `/dashboard`      | Central hub showing sessions, streak and progress                | Not started |
-| Login/Register  | `/login`          | Account creation, authentication and database integration        | 50%         |
-| Session creator | `/create-session` | Create and configure a practice session                          | Not started |
-| Daily streak    | -                 | Counts and displays user activity day by day                     | In progress |
-| Account setting | `/setting`        | Account and user preferences                                     | In progress |
+| Welcome page    | `/`               | Landing page with information about the project                  | ✅ |
+| Home dashboard  | `/dashboard`      | Central hub showing sessions, streak and progress                | ✅ |
+| Login/Register  | `/login`          | Account creation, authentication and database integration        | ✅         |
+| Session creator | `/create-session` | Create and configure a practice session                          | ✅ |
+| Daily streak    | -                 | Counts and displays user activity day by day                     | ✅ |
+| Account setting | `/setting`        | Account and user preferences                                     | ✅ |
 
 > Route names other than those listed in the original feature list are suggestions; adjust to match `routes.ts`.
 
